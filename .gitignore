@@ -1,0 +1,11 @@
+# Unity Generated files
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+Build/
+# VS Code / IDE files
+.vscode/
+# Mac files
+.DS_Store
+# LFS configuration file (make sure this is tracked!)
+!.gitattributes 
