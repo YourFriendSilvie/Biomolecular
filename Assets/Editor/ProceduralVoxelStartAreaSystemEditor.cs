@@ -41,28 +41,15 @@ public class ProceduralVoxelStartAreaSystemEditor : Editor
         ProceduralVoxelTerrain terrain = startAreaSystem.GetComponent<ProceduralVoxelTerrain>();
         ProceduralVoxelTerrainWaterSystem waterSystem = startAreaSystem.GetComponent<ProceduralVoxelTerrainWaterSystem>();
         ProceduralVoxelTerrainScatterer scatterer = startAreaSystem.GetComponent<ProceduralVoxelTerrainScatterer>();
-        if ((terrain != null || waterSystem != null || scatterer != null) && GUILayout.Button("Generate Voxel Terrain + Water + Scatter + Start Area"))
+        if ((terrain != null || waterSystem != null || scatterer != null) &&
+            !(terrain != null && terrain.IsTerrainGenerationInProgress) &&
+            GUILayout.Button("Generate Voxel Terrain + Water + Scatter + Start Area"))
         {
-            if (terrain != null)
-            {
-                terrain.GenerateTerrain(terrain.ClearExistingBeforeGenerate);
-                MarkDirty(terrain);
-            }
-
-            if (waterSystem != null)
-            {
-                waterSystem.GenerateWater(waterSystem.ClearExistingBeforeGenerate);
-                MarkDirty(waterSystem);
-            }
-
-            if (scatterer != null)
-            {
-                scatterer.GenerateScatter(scatterer.ClearExistingBeforeGenerate);
-                MarkDirty(scatterer);
-            }
-
-            startAreaSystem.GenerateStartArea(false);
-            MarkDirty(startAreaSystem);
+            VoxelTerrainEditorGenerationUtility.GenerateTerrainWaterScatterStartArea(
+                terrain,
+                waterSystem,
+                scatterer,
+                startAreaSystem);
         }
     }
 

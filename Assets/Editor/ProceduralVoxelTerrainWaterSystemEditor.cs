@@ -15,6 +15,8 @@ public class ProceduralVoxelTerrainWaterSystemEditor : Editor
             return;
         }
 
+        DrawWaterGenerationMonitoring(waterSystem);
+
         EditorGUILayout.Space();
         if (GUILayout.Button("Apply Coastal Rainforest Water Preset"))
         {
@@ -25,44 +27,83 @@ public class ProceduralVoxelTerrainWaterSystemEditor : Editor
         EditorGUILayout.Space();
         using (new EditorGUILayout.HorizontalScope())
         {
-            if (GUILayout.Button("Generate Voxel Water"))
+            using (new EditorGUI.DisabledScope(waterSystem.IsWaterGenerationInProgress))
             {
-                waterSystem.GenerateWater(waterSystem.ClearExistingBeforeGenerate);
-                MarkDirty(waterSystem);
+                if (GUILayout.Button("Generate Voxel Water"))
+                {
+                    waterSystem.GenerateWater(waterSystem.ClearExistingBeforeGenerate);
+                    MarkDirty(waterSystem);
+                }
             }
 
-            if (GUILayout.Button("Clear Voxel Water"))
+            using (new EditorGUI.DisabledScope(waterSystem.IsWaterGenerationInProgress))
             {
-                waterSystem.ClearGeneratedWater();
-                MarkDirty(waterSystem);
+                if (GUILayout.Button("Clear Voxel Water"))
+                {
+                    waterSystem.ClearGeneratedWater();
+                    MarkDirty(waterSystem);
+                }
             }
         }
 
         ProceduralVoxelTerrain terrain = waterSystem.GetComponent<ProceduralVoxelTerrain>();
         ProceduralVoxelTerrainScatterer scatterer = waterSystem.GetComponent<ProceduralVoxelTerrainScatterer>();
         ProceduralVoxelStartAreaSystem startAreaSystem = waterSystem.GetComponent<ProceduralVoxelStartAreaSystem>();
-        if ((terrain != null || scatterer != null || startAreaSystem != null) && GUILayout.Button("Generate Voxel Terrain + Water + Scatter + Start Area"))
+        if ((terrain != null || scatterer != null || startAreaSystem != null) &&
+            !(terrain != null && terrain.IsTerrainGenerationInProgress) &&
+            !waterSystem.IsWaterGenerationInProgress &&
+            GUILayout.Button("Generate Voxel Terrain + Water + Scatter + Start Area"))
         {
-            if (terrain != null)
-            {
-                terrain.GenerateTerrain(terrain.ClearExistingBeforeGenerate);
-                MarkDirty(terrain);
-            }
+            VoxelTerrainEditorGenerationUtility.GenerateTerrainWaterScatterStartArea(
+                terrain,
+                waterSystem,
+                scatterer,
+                startAreaSystem);
+        }
 
-            waterSystem.GenerateWater(waterSystem.ClearExistingBeforeGenerate);
-            MarkDirty(waterSystem);
+        if (waterSystem.IsWaterGenerationInProgress)
+        {
+            Repaint();
+        }
+    }
 
-            if (scatterer != null)
-            {
-                scatterer.GenerateScatter(scatterer.ClearExistingBeforeGenerate);
-                MarkDirty(scatterer);
-            }
+    private static void DrawWaterGenerationMonitoring(ProceduralVoxelTerrainWaterSystem waterSystem)
+    {
+        if (waterSystem == null)
+        {
+            return;
+        }
 
-            if (startAreaSystem != null)
+        if (waterSystem.IsWaterGenerationInProgress)
+        {
+            EditorGUILayout.HelpBox(
+                $"{waterSystem.WaterGenerationStatus} ({Mathf.RoundToInt(waterSystem.WaterGenerationProgress01 * 100f)}%)",
+                MessageType.Info);
+        }
+
+        var timings = waterSystem.LastWaterGenerationTimings;
+        if (timings == null || timings.Count == 0)
+        {
+            return;
+        }
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Last Water Generation Timings", EditorStyles.boldLabel);
+        for (int i = 0; i < timings.Count; i++)
+        {
+            WaterGenerationTimingEntry timing = timings[i];
+            EditorGUILayout.LabelField($"{timing.Label}: {timing.Milliseconds} ms", EditorStyles.miniBoldLabel);
+            if (!string.IsNullOrWhiteSpace(timing.Details))
             {
-                startAreaSystem.GenerateStartArea(false);
-                MarkDirty(startAreaSystem);
+                EditorGUILayout.LabelField(timing.Details, EditorStyles.wordWrappedMiniLabel);
             }
+        }
+
+        if (waterSystem.LastWaterGenerationTotalMilliseconds > 0L)
+        {
+            EditorGUILayout.LabelField(
+                $"Total: {waterSystem.LastWaterGenerationTotalMilliseconds} ms",
+                EditorStyles.miniBoldLabel);
         }
     }
 

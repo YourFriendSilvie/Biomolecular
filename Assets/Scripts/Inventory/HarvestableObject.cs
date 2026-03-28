@@ -265,3 +265,126 @@ public class HarvestableObject : MonoBehaviour, IHarvestable
         }
     }
 }
+
+public class FinitePlaneWaterHarvestable : MonoBehaviour, IHarvestable
+{
+    private const float WaterDensityGramsPerCubicMeter = 1000000f;
+
+    [SerializeField] private CompositionInfo waterComposition;
+    [SerializeField, Min(0.01f)] private float harvestMassPerActionGrams = 500f;
+    [SerializeField, Min(0.0001f)] private float surfaceAreaSquareMeters = 1f;
+    [SerializeField, Min(0f)] private float initialVolumeCubicMeters;
+    [SerializeField, Min(0f)] private float remainingVolumeCubicMeters;
+    [SerializeField] private float initialSurfaceY;
+    [SerializeField, Min(0.05f)] private float visibleThicknessMeters = 0.2f;
+
+    public bool HasWater => remainingVolumeCubicMeters > 0.0001f;
+    public float RemainingVolumeCubicMeters => remainingVolumeCubicMeters;
+    public float CurrentSurfaceY
+    {
+        get
+        {
+            float consumedVolume = Mathf.Max(0f, initialVolumeCubicMeters - remainingVolumeCubicMeters);
+            float depthOffset = consumedVolume / Mathf.Max(0.0001f, surfaceAreaSquareMeters);
+            return initialSurfaceY - depthOffset;
+        }
+    }
+
+    public void Configure(
+        CompositionInfo composition,
+        float harvestMassGrams,
+        float startingVolumeCubicMeters,
+        float startingSurfaceY,
+        float planeSurfaceAreaSquareMeters,
+        float planeVisibleThicknessMeters)
+    {
+        waterComposition = composition;
+        harvestMassPerActionGrams = Mathf.Max(0.01f, harvestMassGrams);
+        surfaceAreaSquareMeters = Mathf.Max(0.0001f, planeSurfaceAreaSquareMeters);
+        initialVolumeCubicMeters = Mathf.Max(0f, startingVolumeCubicMeters);
+        remainingVolumeCubicMeters = initialVolumeCubicMeters;
+        initialSurfaceY = startingSurfaceY;
+        visibleThicknessMeters = Mathf.Max(0.05f, planeVisibleThicknessMeters);
+        ApplyVisualState();
+    }
+
+    public bool Harvest(Inventory playerInventory)
+    {
+        if (playerInventory == null || waterComposition == null || !HasWater)
+        {
+            return false;
+        }
+
+        float availableMass = remainingVolumeCubicMeters * WaterDensityGramsPerCubicMeter;
+        float harvestMass = Mathf.Min(harvestMassPerActionGrams, availableMass);
+        if (harvestMass <= 0.001f)
+        {
+            return false;
+        }
+
+        if (!playerInventory.AddItem(
+                waterComposition,
+                1,
+                harvestMass,
+                CompositionInfo.CopyComposition(waterComposition.composition)))
+        {
+            return false;
+        }
+
+        remainingVolumeCubicMeters = Mathf.Max(0f, remainingVolumeCubicMeters - (harvestMass / WaterDensityGramsPerCubicMeter));
+        ApplyVisualState();
+        return true;
+    }
+
+    public string GetHarvestDisplayName()
+    {
+        return waterComposition != null ? waterComposition.itemName : "Water";
+    }
+
+    public string GetHarvestPreview()
+    {
+        string displayName = GetHarvestDisplayName();
+        if (!HasWater)
+        {
+            return $"{displayName}\nDepleted";
+        }
+
+        float availableMass = remainingVolumeCubicMeters * WaterDensityGramsPerCubicMeter;
+        float harvestMass = Mathf.Min(harvestMassPerActionGrams, availableMass);
+        return $"{displayName}\nYield: {harvestMass:F0} g\nVolume: {remainingVolumeCubicMeters:F1} m³\nSurface: {CurrentSurfaceY:F2} m";
+    }
+
+    private void OnValidate()
+    {
+        harvestMassPerActionGrams = Mathf.Max(0.01f, harvestMassPerActionGrams);
+        surfaceAreaSquareMeters = Mathf.Max(0.0001f, surfaceAreaSquareMeters);
+        initialVolumeCubicMeters = Mathf.Max(0f, initialVolumeCubicMeters);
+        remainingVolumeCubicMeters = Mathf.Clamp(remainingVolumeCubicMeters, 0f, initialVolumeCubicMeters);
+        visibleThicknessMeters = Mathf.Max(0.05f, visibleThicknessMeters);
+        ApplyVisualState();
+    }
+
+    private void ApplyVisualState()
+    {
+        Vector3 position = transform.position;
+        position.y = CurrentSurfaceY - (visibleThicknessMeters * 0.5f);
+        transform.position = position;
+
+        Vector3 scale = transform.localScale;
+        scale.y = visibleThicknessMeters;
+        transform.localScale = scale;
+
+        bool visible = HasWater;
+        MeshRenderer renderer = GetComponent<MeshRenderer>();
+        if (renderer != null)
+        {
+            renderer.enabled = visible;
+        }
+
+        Collider collider = GetComponent<Collider>();
+        if (collider != null)
+        {
+            collider.enabled = visible;
+        }
+    }
+}

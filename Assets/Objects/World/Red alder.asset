@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bb0c5008bea4ce9877b7860af58c279, type: 3}
+  m_Name: Red alder
+  m_EditorClassIdentifier: Assembly-CSharp::TreeSpeciesData
+  commonName: Red alder
+  scientificName: Alnus rubra
+  evergreen: 0
+  foliageUnitName: leaf
+  foliageRenderStyle: 3
+  foliageCardMaterial: {fileID: 2100000, guid: 71a973528b23d934ea7bee28cfe50e1f, type: 2}
+  foliageElementLengthScale: 1
+  foliageElementWidthScale: 1
+  foliageCardPlaneCount: 1
+  trunkGreenDensityKgPerCubicMeter: 630
+  branchGreenDensityKgPerCubicMeter: 600
+  barkGreenDensityKgPerCubicMeter: 500
+  barkVolumeFraction: 0.07
+  trunkDryMassFraction: 0.59
+  branchDryMassFraction: 0.57
+  barkDryMassFraction: 0.54
+  foliageDryMassFraction: 0.36
+  foliageWetMassPerUnitGrams: 1.1
+  foliageWetBulkDensityKgPerCubicMeter: 1.05
+  fallbackBranchVolumeRatio: 0.27
+  woodyComposition: {fileID: 11400000, guid: 161c30ca679e62d49a51abfb20c2e6a6, type: 2}
+  foliageComposition: {fileID: 11400000, guid: ffb9e8aef77919641bd2afb60e021e2a, type: 2}
+  generationProfile:
+    heightRangeMeters: {x: 18, y: 32}
+    trunkRadiusRangeMeters: {x: 0.18, y: 0.4}
+    crownRadiusRangeMeters: {x: 3.5, y: 6.5}
+    crownBaseHeightFraction: 0.34
+    crownHeightFraction: 0.58
+    crownShape: 3
+    branchCountRange: {x: 18, y: 28}
+    branchLengthScaleRange: {x: 0.75, y: 1}
+    branchRadiusScaleRange: {x: 0.12, y: 0.2}
+    branchPitchDegreesRange: {x: 2, y: 26}
+    trunkTopRadiusFraction: 0.14
+    branchTipRadiusFraction: 0.16
+    trunkBendStrength: 0.05
+    branchBendStrength: 0.14
+    foliageUnitsPerCubicMeterRange: {x: 90, y: 150}
+    foliageClusterCountRange: {x: 16, y: 26}
+    foliageClusterRadiusRangeMeters: {x: 0.55, y: 1.2}
+    radialSegments: 8
+    trunkSegments: 9
+    branchSegments: 5
+    foliageLongitudeSegments: 10
+    foliageLatitudeSegments: 6

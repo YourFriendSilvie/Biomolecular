@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using StarterAssets;
 using UnityEngine;
@@ -91,12 +92,38 @@ public class ProceduralVoxelStartAreaSystem : MonoBehaviour
         landmarkRingRadiusMeters = Mathf.Max(clearingRadiusMeters + 1f, landmarkRingRadiusMeters);
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
-        if (Application.isPlaying && generateOnStart)
+        if (!Application.isPlaying || !generateOnStart)
         {
-            GenerateStartArea(repositionPlayerOnStart);
+            yield break;
         }
+
+        voxelTerrain ??= GetComponent<ProceduralVoxelTerrain>();
+        yield return null;
+        while (voxelTerrain != null)
+        {
+            if (voxelTerrain.HasReadyGameplayTerrain)
+            {
+                break;
+            }
+
+            if (!voxelTerrain.IsTerrainGenerationInProgress)
+            {
+                if (generateTerrainBeforeStartArea && voxelTerrain.IsRuntimeStreamingModeActive)
+                {
+                    voxelTerrain.GenerateTerrainWithConfiguredMode(voxelTerrain.ClearExistingBeforeGenerate);
+                    yield return null;
+                    continue;
+                }
+
+                break;
+            }
+
+            yield return null;
+        }
+
+        GenerateStartArea(repositionPlayerOnStart);
     }
 
     [ContextMenu("Apply Coastal Rainforest Start Preset")]
@@ -213,12 +240,22 @@ public class ProceduralVoxelStartAreaSystem : MonoBehaviour
             return false;
         }
 
-        if (generateTerrainBeforeStartArea && !voxelTerrain.HasGeneratedTerrain)
+        if (generateTerrainBeforeStartArea && !voxelTerrain.HasReadyGameplayTerrain)
         {
-            voxelTerrain.GenerateTerrain(voxelTerrain.ClearExistingBeforeGenerate);
+            if (!voxelTerrain.IsTerrainGenerationInProgress)
+            {
+                if (voxelTerrain.IsRuntimeStreamingModeActive)
+                {
+                    voxelTerrain.GenerateTerrainWithConfiguredMode(voxelTerrain.ClearExistingBeforeGenerate);
+                }
+                else
+                {
+                    voxelTerrain.GenerateTerrain(voxelTerrain.ClearExistingBeforeGenerate);
+                }
+            }
         }
 
-        if (!voxelTerrain.HasGeneratedTerrain)
+        if (!voxelTerrain.HasReadyGameplayTerrain)
         {
             Debug.LogWarning($"{gameObject.name} could not generate a starting area because voxel terrain is not available.");
             return false;
@@ -251,7 +288,11 @@ public class ProceduralVoxelStartAreaSystem : MonoBehaviour
     {
         bestCandidate = default;
         float bestScore = float.MinValue;
-        Bounds bounds = voxelTerrain.WorldBounds;
+        if (!voxelTerrain.TryGetGameplayBounds(out Bounds bounds))
+        {
+            return false;
+        }
+
         float minX = bounds.min.x + edgePaddingMeters;
         float maxX = bounds.max.x - edgePaddingMeters;
         float minZ = bounds.min.z + edgePaddingMeters;
@@ -266,24 +307,70 @@ public class ProceduralVoxelStartAreaSystem : MonoBehaviour
         {
             float worldX = NextFloat(random, minX, maxX);
             float worldZ = NextFloat(random, minZ, maxZ);
-            if (!voxelTerrain.TrySampleSurfaceWorld(worldX, worldZ, out RaycastHit hit))
+            bool usedCachedSurface = voxelTerrain.TryGetCachedSurfacePointWorld(
+                worldX,
+                worldZ,
+                out Vector3 screeningCenter,
+                out Vector3 screeningNormal);
+            RaycastHit hit = default;
+            if (!usedCachedSurface)
+            {
+                if (!voxelTerrain.TrySampleSurfaceWorld(worldX, worldZ, out hit))
+                {
+                    continue;
+                }
+
+                screeningCenter = hit.point;
+                screeningNormal = hit.normal;
+            }
+
+            screeningNormal = NormalizeSurfaceNormal(screeningNormal);
+            if (Vector3.Angle(screeningNormal, Vector3.up) > maxSlopeDegrees)
             {
                 continue;
             }
 
-            Vector3 center = hit.point;
+            if (!TryEvaluateLocalPatchScreening(
+                screeningCenter,
+                usedCachedSurface,
+                out float screeningHeightVariation,
+                out float screeningAverageSlope,
+                out bool screeningUsedLivePatch))
+            {
+                continue;
+            }
+
+            Vector3 center = screeningCenter;
+            Vector3 surfaceNormal = screeningNormal;
+            if (usedCachedSurface)
+            {
+                // Use the cached terrain prepass for the noisy candidate search, then confirm the final
+                // center against the live terrain so carved shorelines and riverbanks stay accurate.
+                if (!voxelTerrain.TrySampleSurfaceWorld(worldX, worldZ, out hit))
+                {
+                    continue;
+                }
+
+                center = hit.point;
+                surfaceNormal = NormalizeSurfaceNormal(hit.normal);
+            }
+
             if (waterSystem != null && waterSystem.IsPointUnderWater(center, 0.75f))
             {
                 continue;
             }
 
-            float slope = Vector3.Angle(hit.normal, Vector3.up);
+            float slope = Vector3.Angle(surfaceNormal, Vector3.up);
             if (slope > maxSlopeDegrees)
             {
                 continue;
             }
 
-            if (!TryEvaluateLocalPatch(center, out float heightVariation, out float averageSlope))
+            bool hasConfirmedLivePatch = screeningUsedLivePatch && !usedCachedSurface;
+            float heightVariation = screeningHeightVariation;
+            float averageSlope = screeningAverageSlope;
+            if (!hasConfirmedLivePatch &&
+                !TryEvaluateLocalPatch(center, out heightVariation, out averageSlope))
             {
                 continue;
             }
@@ -320,7 +407,7 @@ public class ProceduralVoxelStartAreaSystem : MonoBehaviour
             bestCandidate = new StartAreaCandidate
             {
                 center = center,
-                surfaceNormal = hit.normal.sqrMagnitude > 0.0001f ? hit.normal.normalized : Vector3.up,
+                surfaceNormal = surfaceNormal,
                 nearestFreshwaterPoint = hasFreshwater ? nearestFreshwaterPoint : center + Vector3.forward,
                 freshwaterDistanceMeters = hasFreshwater ? freshwaterDistanceMeters : float.PositiveInfinity,
                 score = totalScore
@@ -365,6 +452,77 @@ public class ProceduralVoxelStartAreaSystem : MonoBehaviour
         return heightVariation <= maxPatchHeightVariationMeters && averageSlope <= maxSlopeDegrees;
     }
 
+    private bool TryEvaluateLocalPatchScreening(
+        Vector3 center,
+        bool usedCachedSurface,
+        out float heightVariation,
+        out float averageSlope,
+        out bool usedLivePatchEvaluation)
+    {
+        heightVariation = 0f;
+        averageSlope = 0f;
+        usedLivePatchEvaluation = false;
+
+        if (!usedCachedSurface)
+        {
+            usedLivePatchEvaluation = true;
+            return TryEvaluateLocalPatch(center, out heightVariation, out averageSlope);
+        }
+
+        if (TryEvaluateLocalPatchCached(center, out heightVariation, out averageSlope, out bool hadCompleteCachedPatch))
+        {
+            return true;
+        }
+
+        if (hadCompleteCachedPatch)
+        {
+            return false;
+        }
+
+        // A sparse cached prepass should fall back to live sampling instead of rejecting a valid start area.
+        usedLivePatchEvaluation = true;
+        return TryEvaluateLocalPatch(center, out heightVariation, out averageSlope);
+    }
+
+    private bool TryEvaluateLocalPatchCached(
+        Vector3 center,
+        out float heightVariation,
+        out float averageSlope,
+        out bool hadCompleteCachedPatch)
+    {
+        heightVariation = 0f;
+        averageSlope = 0f;
+        hadCompleteCachedPatch = false;
+        if (voxelTerrain == null)
+        {
+            return false;
+        }
+
+        float minHeight = center.y;
+        float maxHeight = center.y;
+        float slopeSum = 0f;
+        int sampleCount = 0;
+        for (int i = 0; i < 8; i++)
+        {
+            float angleRadians = (Mathf.PI * 2f * i) / 8f;
+            Vector3 offset = new Vector3(Mathf.Cos(angleRadians), 0f, Mathf.Sin(angleRadians)) * localPatchCheckRadiusMeters;
+            if (!voxelTerrain.TryGetCachedSurfacePointWorld(center.x + offset.x, center.z + offset.z, out Vector3 samplePoint, out Vector3 sampleNormal))
+            {
+                return false;
+            }
+
+            minHeight = Mathf.Min(minHeight, samplePoint.y);
+            maxHeight = Mathf.Max(maxHeight, samplePoint.y);
+            slopeSum += Vector3.Angle(NormalizeSurfaceNormal(sampleNormal), Vector3.up);
+            sampleCount++;
+        }
+
+        hadCompleteCachedPatch = true;
+        heightVariation = maxHeight - minHeight;
+        averageSlope = sampleCount <= 0 ? 0f : slopeSum / sampleCount;
+        return heightVariation <= maxPatchHeightVariationMeters && averageSlope <= maxSlopeDegrees;
+    }
+
     private float EvaluateShelterScore(Vector3 center, IReadOnlyList<Vector3> scatterPositions)
     {
         if (scatterPositions == null || scatterPositions.Count == 0)
@@ -391,15 +549,7 @@ public class ProceduralVoxelStartAreaSystem : MonoBehaviour
         return Mathf.Clamp01(ringCount / 9f);
     }
 
-    private static float EvaluateEdgeScore(Vector3 position, Bounds bounds)
-    {
-        float minDistance = Mathf.Min(
-            position.x - bounds.min.x,
-            bounds.max.x - position.x,
-            position.z - bounds.min.z,
-            bounds.max.z - position.z);
-        return Mathf.Clamp01(minDistance / Mathf.Max(1f, Mathf.Min(bounds.size.x, bounds.size.z) * 0.25f));
-    }
+    private static float EvaluateEdgeScore(Vector3 position, Bounds bounds) => VoxelBrushUtility.EvaluateEdgeScore(position, bounds);
 
     private List<Vector3> GatherScatterPositions()
     {
@@ -700,42 +850,15 @@ public class ProceduralVoxelStartAreaSystem : MonoBehaviour
         }
     }
 
-    private static bool HasGeneratedChildren(Transform root)
-    {
-        return root != null && root.childCount > 0;
-    }
+    private static bool HasGeneratedChildren(Transform root) => VoxelBrushUtility.HasGeneratedChildren(root);
 
     private static bool IsFarEnoughFromPlaced(Vector3 position, IReadOnlyList<Vector3> existingPositions, float minimumSpacingMeters)
-    {
-        if (existingPositions == null || existingPositions.Count == 0)
-        {
-            return true;
-        }
+        => VoxelBrushUtility.IsFarEnoughFromPlaced(position, existingPositions, minimumSpacingMeters);
 
-        float minimumSpacingSquared = minimumSpacingMeters * minimumSpacingMeters;
-        for (int i = 0; i < existingPositions.Count; i++)
-        {
-            Vector3 planarDelta = Vector3.ProjectOnPlane(position - existingPositions[i], Vector3.up);
-            if (planarDelta.sqrMagnitude < minimumSpacingSquared)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
+    private static Vector3 NormalizeSurfaceNormal(Vector3 surfaceNormal) => VoxelBrushUtility.NormalizeSurfaceNormal(surfaceNormal);
 
     private static float NextFloat(System.Random random, float minInclusive, float maxInclusive)
-    {
-        if (Mathf.Approximately(minInclusive, maxInclusive))
-        {
-            return minInclusive;
-        }
-
-        float min = Mathf.Min(minInclusive, maxInclusive);
-        float max = Mathf.Max(minInclusive, maxInclusive);
-        return (float)(min + (random.NextDouble() * (max - min)));
-    }
+        => VoxelBrushUtility.NextFloat(random, minInclusive, maxInclusive);
 
     private static Material ResolveAutoMaterial(string materialName, Color color, float smoothness)
     {

@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9849a2a03987f374ba5b361428d637de, type: 3}
+  m_Name: Iron-Rich Stone
+  m_EditorClassIdentifier: Assembly-CSharp::CompositionInfo
+  itemName: Iron-Rich Stone
+  texture: {fileID: 0}
+  composition:
+  - resource: Iron Oxide
+    percentage: 34
+    useRandomRange: 0
+    minPercentage: 28
+    maxPercentage: 40
+  - resource: Silicon Dioxide
+    percentage: 36
+    useRandomRange: 0
+    minPercentage: 31
+    maxPercentage: 41
+  - resource: Aluminum Oxide
+    percentage: 12
+    useRandomRange: 0
+    minPercentage: 9
+    maxPercentage: 15
+  - resource: Magnesium Oxide
+    percentage: 8
+    useRandomRange: 0
+    minPercentage: 5
+    maxPercentage: 11
+  - resource: Calcium Carbonate
+    percentage: 4
+    useRandomRange: 0
+    minPercentage: 2
+    maxPercentage: 6
+  - resource: Water
+    percentage: 2
+    useRandomRange: 0
+    minPercentage: 1
+    maxPercentage: 3
+  - resource: Potassium Oxide
+    percentage: 4
+    useRandomRange: 0
+    minPercentage: 2
+    maxPercentage: 6

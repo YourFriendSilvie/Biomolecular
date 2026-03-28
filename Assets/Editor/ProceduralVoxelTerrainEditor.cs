@@ -15,6 +15,35 @@ public class ProceduralVoxelTerrainEditor : Editor
             return;
         }
 
+        ProceduralVoxelTerrainWaterSystem waterSystem = voxelTerrain.GetComponent<ProceduralVoxelTerrainWaterSystem>();
+        bool isWaterGenerationInProgress = waterSystem != null && waterSystem.IsWaterGenerationInProgress;
+        ProceduralVoxelTerrainScatterer scatterer = voxelTerrain.GetComponent<ProceduralVoxelTerrainScatterer>();
+        bool isScatterGenerationInProgress = scatterer != null && scatterer.IsScatterGenerationInProgress;
+
+        if (voxelTerrain.IsTerrainGenerationInProgress)
+        {
+            EditorGUILayout.HelpBox(
+                $"{voxelTerrain.TerrainGenerationStatus} ({Mathf.RoundToInt(voxelTerrain.TerrainGenerationProgress01 * 100f)}%)",
+                MessageType.Info);
+            Repaint();
+        }
+
+        if (isWaterGenerationInProgress)
+        {
+            EditorGUILayout.HelpBox(
+                $"{waterSystem.WaterGenerationStatus} ({Mathf.RoundToInt(waterSystem.WaterGenerationProgress01 * 100f)}%)",
+                MessageType.Info);
+            Repaint();
+        }
+
+        if (isScatterGenerationInProgress)
+        {
+            EditorGUILayout.HelpBox(
+                $"{scatterer.ScatterGenerationStatus} ({Mathf.RoundToInt(scatterer.ScatterGenerationProgress01 * 100f)}%)",
+                MessageType.Info);
+            Repaint();
+        }
+
         EditorGUILayout.Space();
         if (GUILayout.Button("Apply Olympic Rainforest Voxel Preset"))
         {
@@ -23,28 +52,87 @@ public class ProceduralVoxelTerrainEditor : Editor
         }
 
         EditorGUILayout.Space();
-        using (new EditorGUILayout.HorizontalScope())
+        using (new EditorGUI.DisabledScope(isWaterGenerationInProgress))
         {
-            if (GUILayout.Button("Generate Voxel Terrain"))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                voxelTerrain.GenerateTerrain(voxelTerrain.ClearExistingBeforeGenerate);
-                MarkDirty(voxelTerrain);
-            }
+                using (new EditorGUI.DisabledScope(voxelTerrain.IsTerrainGenerationInProgress))
+                {
+                    if (GUILayout.Button("Generate Voxel Terrain"))
+                    {
+                        VoxelTerrainEditorGenerationUtility.GenerateTerrainOnly(voxelTerrain);
+                    }
+                }
 
-            if (GUILayout.Button("Clear Voxel Terrain"))
-            {
-                voxelTerrain.ClearGeneratedTerrain();
-                MarkDirty(voxelTerrain);
+                if (GUILayout.Button(voxelTerrain.IsTerrainGenerationInProgress ? "Clear / Cancel Voxel Terrain" : "Clear Voxel Terrain"))
+                {
+                    voxelTerrain.ClearGeneratedTerrain();
+                    MarkDirty(voxelTerrain);
+                }
             }
         }
 
-        ProceduralVoxelTerrainWaterSystem waterSystem = voxelTerrain.GetComponent<ProceduralVoxelTerrainWaterSystem>();
-        ProceduralVoxelTerrainScatterer scatterer = voxelTerrain.GetComponent<ProceduralVoxelTerrainScatterer>();
         ProceduralVoxelStartAreaSystem startAreaSystem = voxelTerrain.GetComponent<ProceduralVoxelStartAreaSystem>();
-        if ((waterSystem != null || scatterer != null || startAreaSystem != null) && GUILayout.Button("Generate Voxel Terrain + Water + Scatter + Start Area"))
+        if ((waterSystem != null || scatterer != null || startAreaSystem != null) &&
+            !voxelTerrain.IsTerrainGenerationInProgress &&
+            !isWaterGenerationInProgress &&
+            !isScatterGenerationInProgress &&
+            GUILayout.Button("Generate Voxel Terrain + Water + Scatter + Start Area"))
         {
-            voxelTerrain.GenerateTerrain(voxelTerrain.ClearExistingBeforeGenerate);
-            MarkDirty(voxelTerrain);
+            VoxelTerrainEditorGenerationUtility.GenerateTerrainWaterScatterStartArea(
+                voxelTerrain,
+                waterSystem,
+                scatterer,
+                startAreaSystem);
+        }
+    }
+
+    private static void MarkDirty(Component component)
+    {
+        if (component == null)
+        {
+            return;
+        }
+
+        EditorUtility.SetDirty(component);
+        if (component.gameObject.scene.IsValid())
+        {
+            EditorSceneManager.MarkSceneDirty(component.gameObject.scene);
+        }
+    }
+}
+
+internal static class VoxelTerrainEditorGenerationUtility
+{
+    public static void GenerateTerrainOnly(ProceduralVoxelTerrain terrain)
+    {
+        if (terrain == null)
+        {
+            return;
+        }
+
+        terrain.GenerateTerrainWithConfiguredMode(
+            terrain.ClearExistingBeforeGenerate,
+            _ => MarkDirty(terrain));
+    }
+
+    public static void GenerateTerrainWaterScatterStartArea(
+        ProceduralVoxelTerrain terrain,
+        ProceduralVoxelTerrainWaterSystem waterSystem,
+        ProceduralVoxelTerrainScatterer scatterer,
+        ProceduralVoxelStartAreaSystem startAreaSystem)
+    {
+        void ContinueGeneration(bool success)
+        {
+            if (!success)
+            {
+                return;
+            }
+
+            if (terrain != null)
+            {
+                MarkDirty(terrain);
+            }
 
             if (waterSystem != null)
             {
@@ -64,9 +152,19 @@ public class ProceduralVoxelTerrainEditor : Editor
                 MarkDirty(startAreaSystem);
             }
         }
+
+        if (terrain == null)
+        {
+            ContinueGeneration(true);
+            return;
+        }
+
+        terrain.GenerateTerrainWithConfiguredMode(
+            terrain.ClearExistingBeforeGenerate,
+            ContinueGeneration);
     }
 
-    private static void MarkDirty(Component component)
+    public static void MarkDirty(Component component)
     {
         if (component == null)
         {

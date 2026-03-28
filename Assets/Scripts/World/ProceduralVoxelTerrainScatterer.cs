@@ -1,11 +1,18 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class ProceduralVoxelTerrainScatterer : MonoBehaviour
 {
     private const string DefaultGeneratedRootName = "Generated Voxel Biome Props";
+    private const int ScatterSetupWorkUnitCount = 5;
+    private const int ScatterProgressUpdateAttemptInterval = 32;
     private static readonly Dictionary<string, Material> AutoMaterials = new Dictionary<string, Material>(StringComparer.Ordinal);
+
 
     [Header("Voxel Terrain")]
     [SerializeField] private ProceduralVoxelTerrain voxelTerrain;
@@ -26,19 +33,58 @@ public class ProceduralVoxelTerrainScatterer : MonoBehaviour
     [Header("Biome Prototypes")]
     [SerializeField] private List<TerrainScatterPrototype> prototypes = new List<TerrainScatterPrototype>();
 
+    [Header("Debug")]
+    [SerializeField] private bool logGenerationTimings = false;
+
     public bool ClearExistingBeforeGenerate => clearExistingBeforeGenerate;
+    public bool HasGeneratedScatter => HasGeneratedChildren(GetGeneratedRoot()) && !IsScatterGenerationInProgress;
+    public bool IsScatterGenerationInProgress => isScatterGenerationInProgress;
+    public float ScatterGenerationProgress01 => isScatterGenerationInProgress
+        ? scatterGenerationProgress01
+        : (HasGeneratedScatter ? 1f : 0f);
+    public string ScatterGenerationStatus => isScatterGenerationInProgress ? scatterGenerationStatus : string.Empty;
+
+    [NonSerialized] private bool isScatterGenerationInProgress;
+    [NonSerialized] private float scatterGenerationProgress01;
+    [NonSerialized] private string scatterGenerationStatus = string.Empty;
 
     private void Reset()
     {
         ApplyOlympicRainforestPreset();
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
-        if (Application.isPlaying && generateOnStart)
+        if (!Application.isPlaying || !generateOnStart)
         {
-            GenerateScatter(clearExistingBeforeGenerate);
+            yield break;
         }
+
+        voxelTerrain ??= GetComponent<ProceduralVoxelTerrain>();
+        yield return null;
+        while (voxelTerrain != null)
+        {
+            if (voxelTerrain.HasReadyGameplayTerrain)
+            {
+                break;
+            }
+
+            if (!voxelTerrain.IsTerrainGenerationInProgress)
+            {
+                if (generateTerrainBeforeScattering && voxelTerrain.IsRuntimeStreamingModeActive)
+                {
+                    voxelTerrain.GenerateTerrainWithConfiguredMode(voxelTerrain.ClearExistingBeforeGenerate);
+                    yield return null;
+                    continue;
+                }
+
+                break;
+            }
+
+            yield return null;
+        }
+
+        GenerateScatter(clearExistingBeforeGenerate);
     }
 
     private void OnValidate()
@@ -61,7 +107,7 @@ public class ProceduralVoxelTerrainScatterer : MonoBehaviour
     public void ApplyOlympicRainforestPreset()
     {
         generatedRootName = DefaultGeneratedRootName;
-        prototypes = BuildOlympicRainforestPrototypes();
+        prototypes = OlympicRainforestPreset.Build();
     }
 
     [ContextMenu("Generate Scatter")]
@@ -78,53 +124,167 @@ public class ProceduralVoxelTerrainScatterer : MonoBehaviour
 
     public List<GameObject> GenerateScatter(bool clearExisting)
     {
+        if (isScatterGenerationInProgress)
+        {
+            Debug.LogWarning($"{gameObject.name} is already generating voxel scatter.", this);
+            return new List<GameObject>();
+        }
+
+        ScatterGenerationMetrics generationMetrics = logGenerationTimings ? new ScatterGenerationMetrics() : null;
+        bool collectTimings = generationMetrics != null;
+        long totalTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
         List<GameObject> createdObjects = new List<GameObject>();
-        ProceduralVoxelTerrain resolvedTerrain = ResolveVoxelTerrainAndMaybeGenerate();
-        if (randomizeSeed)
-        {
-            seed = Environment.TickCount;
-        }
+        bool success = false;
+        int prototypeCount = prototypes != null ? prototypes.Count : 0;
 
-        ProceduralVoxelTerrainWaterSystem resolvedWaterSystem = ResolveWaterSystemAndMaybeGenerate();
-        if (resolvedTerrain == null)
-        {
-            resolvedTerrain = voxelTerrain != null ? voxelTerrain : GetComponent<ProceduralVoxelTerrain>();
-        }
+        BeginScatterGenerationProgress();
 
-        if (resolvedTerrain == null || !resolvedTerrain.HasGeneratedTerrain)
+        try
         {
-            Debug.LogWarning($"{gameObject.name} could not scatter voxel placeholders because no voxel terrain is available.");
+            UpdateScatterGenerationProgress(
+                "Resolving voxel terrain for scatter",
+                ComputeScatterProgress01(0, 0, 0f, prototypeCount));
+            long stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+            ProceduralVoxelTerrain resolvedTerrain = ResolveVoxelTerrainAndMaybeGenerate();
+            if (collectTimings)
+            {
+                ScatterTimingUtility.EndTiming(ref generationMetrics.resolveTerrainTicks, stepTimingStart);
+            }
+
+            if (randomizeSeed)
+            {
+                seed = Environment.TickCount;
+            }
+
+            UpdateScatterGenerationProgress(
+                "Resolving water exclusion for scatter",
+                ComputeScatterProgress01(1, 0, 0f, prototypeCount));
+            stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+            ProceduralVoxelTerrainWaterSystem resolvedWaterSystem = ResolveWaterSystemAndMaybeGenerate();
+            if (collectTimings)
+            {
+                ScatterTimingUtility.EndTiming(ref generationMetrics.resolveWaterTicks, stepTimingStart);
+            }
+
+            if (resolvedTerrain == null)
+            {
+                resolvedTerrain = voxelTerrain != null ? voxelTerrain : GetComponent<ProceduralVoxelTerrain>();
+            }
+
+            if (resolvedTerrain == null || !resolvedTerrain.HasReadyGameplayTerrain)
+            {
+                Debug.LogWarning($"{gameObject.name} could not scatter voxel placeholders because no voxel terrain is available.");
+                return createdObjects;
+            }
+
+            UpdateScatterGenerationProgress(
+                clearExisting ? "Clearing existing voxel scatter" : "Retaining existing voxel scatter",
+                ComputeScatterProgress01(2, 0, 0f, prototypeCount));
+            stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+            if (clearExisting)
+            {
+                ClearGeneratedScatterContents();
+            }
+            if (collectTimings)
+            {
+                ScatterTimingUtility.EndTiming(ref generationMetrics.clearTicks, stepTimingStart);
+            }
+
+            UpdateScatterGenerationProgress(
+                "Resolving voxel scatter bounds",
+                ComputeScatterProgress01(3, 0, 0f, prototypeCount));
+            stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+            bool hasBounds = resolvedTerrain.TryGetGameplayBounds(out Bounds bounds);
+            if (collectTimings)
+            {
+                ScatterTimingUtility.EndTiming(ref generationMetrics.boundsTicks, stepTimingStart);
+            }
+            if (!hasBounds)
+            {
+                Debug.LogWarning($"{gameObject.name} could not scatter voxel placeholders because no ready gameplay terrain bounds are available.");
+                return createdObjects;
+            }
+
+            UpdateScatterGenerationProgress(
+                "Preparing voxel scatter root",
+                ComputeScatterProgress01(4, 0, 0f, prototypeCount));
+            stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+            Transform generatedRoot = EnsureGeneratedRoot();
+            if (collectTimings)
+            {
+                ScatterTimingUtility.EndTiming(ref generationMetrics.rootTicks, stepTimingStart);
+            }
+
+            System.Random random = new System.Random(seed);
+
+            for (int prototypeIndex = 0; prototypeIndex < prototypeCount; prototypeIndex++)
+            {
+                TerrainScatterPrototype prototype = prototypes[prototypeIndex];
+                if (prototype == null)
+                {
+                    UpdateScatterGenerationProgress(
+                        $"Skipping empty voxel scatter prototype {prototypeIndex + 1}/{prototypeCount}",
+                        ComputeScatterProgress01(ScatterSetupWorkUnitCount, prototypeIndex + 1, 0f, prototypeCount));
+                    continue;
+                }
+
+                prototype.Sanitize();
+                string prototypeName = prototype.ResolveDisplayName();
+                CompositionInfo resolvedComposition = prototype.ResolveComposition();
+                if (resolvedComposition == null)
+                {
+                    Debug.LogWarning($"{gameObject.name} could not resolve a CompositionInfo for voxel scatter prototype {prototypeName}.");
+                    UpdateScatterGenerationProgress(
+                        $"Skipping unresolved voxel scatter prototype {prototypeIndex + 1}/{prototypeCount}: {prototypeName}",
+                        ComputeScatterProgress01(ScatterSetupWorkUnitCount, prototypeIndex + 1, 0f, prototypeCount));
+                    continue;
+                }
+
+                PrototypeGenerationMetrics prototypeMetrics = collectTimings
+                    ? new PrototypeGenerationMetrics
+                    {
+                        prototypeName = prototypeName,
+                        requestedCount = prototype.spawnCount
+                    }
+                    : null;
+                int placedCount = GeneratePrototypeInstances(
+                    random,
+                    resolvedTerrain,
+                    bounds,
+                    resolvedWaterSystem,
+                    generatedRoot,
+                    prototype,
+                    resolvedComposition,
+                    createdObjects,
+                    prototypeIndex,
+                    prototypeCount,
+                    prototypeMetrics);
+                if (prototypeMetrics != null)
+                {
+                    prototypeMetrics.acceptedCount = placedCount;
+                    generationMetrics.prototypeMetrics.Add(prototypeMetrics);
+                }
+
+                UpdateScatterGenerationProgress(
+                    $"Scatter generation: prototype {prototypeIndex + 1}/{prototypeCount} {prototypeName} complete ({placedCount}/{prototype.spawnCount})",
+                    ComputeScatterProgress01(ScatterSetupWorkUnitCount, prototypeIndex + 1, 0f, prototypeCount));
+            }
+
+            success = true;
+            UpdateScatterGenerationProgress("Voxel scatter generation complete", 1f);
+
+            if (collectTimings)
+            {
+                generationMetrics.totalTicks = ScatterTimingUtility.GetElapsedTicks(totalTimingStart);
+                LogScatterGenerationTimingsSummary(generationMetrics, createdObjects.Count);
+            }
+
             return createdObjects;
         }
-
-        if (clearExisting)
+        finally
         {
-            ClearGeneratedScatterContents();
+            FinishScatterGenerationProgress(success);
         }
-
-        Transform generatedRoot = EnsureGeneratedRoot();
-        Bounds bounds = resolvedTerrain.WorldBounds;
-        System.Random random = new System.Random(seed);
-
-        foreach (TerrainScatterPrototype prototype in prototypes)
-        {
-            if (prototype == null)
-            {
-                continue;
-            }
-
-            prototype.Sanitize();
-            CompositionInfo resolvedComposition = prototype.ResolveComposition();
-            if (resolvedComposition == null)
-            {
-                Debug.LogWarning($"{gameObject.name} could not resolve a CompositionInfo for voxel scatter prototype {prototype.ResolveDisplayName()}.");
-                continue;
-            }
-
-            GeneratePrototypeInstances(random, resolvedTerrain, bounds, resolvedWaterSystem, generatedRoot, prototype, resolvedComposition, createdObjects);
-        }
-
-        return createdObjects;
     }
 
     public bool ClearGeneratedScatter()
@@ -198,9 +358,20 @@ public class ProceduralVoxelTerrainScatterer : MonoBehaviour
             voxelTerrain = GetComponent<ProceduralVoxelTerrain>();
         }
 
-        if (voxelTerrain != null && generateTerrainBeforeScattering && (waterSystem == null || !generateWaterBeforeScattering))
+        if (voxelTerrain != null &&
+            generateTerrainBeforeScattering &&
+            (waterSystem == null || !generateWaterBeforeScattering) &&
+            !voxelTerrain.HasReadyGameplayTerrain &&
+            !voxelTerrain.IsTerrainGenerationInProgress)
         {
-            voxelTerrain.GenerateTerrain(voxelTerrain.ClearExistingBeforeGenerate);
+            if (voxelTerrain.IsRuntimeStreamingModeActive)
+            {
+                voxelTerrain.GenerateTerrainWithConfiguredMode(voxelTerrain.ClearExistingBeforeGenerate);
+            }
+            else
+            {
+                voxelTerrain.GenerateTerrain(voxelTerrain.ClearExistingBeforeGenerate);
+            }
         }
 
         return voxelTerrain;
@@ -213,12 +384,29 @@ public class ProceduralVoxelTerrainScatterer : MonoBehaviour
             waterSystem = GetComponent<ProceduralVoxelTerrainWaterSystem>();
         }
 
-        if (waterSystem != null && generateWaterBeforeScattering)
+        if (waterSystem != null &&
+            generateWaterBeforeScattering &&
+            !HasGeneratedChildren(waterSystem.GetGeneratedRoot()))
         {
             waterSystem.GenerateWater(waterSystem.ClearExistingBeforeGenerate);
         }
 
         return waterSystem;
+    }
+
+    private static bool HasGeneratedChildren(Transform root)
+    {
+        if (root == null)
+        {
+            return false;
+        }
+
+        foreach (Transform _ in root)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private Transform EnsureGeneratedRoot()
@@ -238,7 +426,7 @@ public class ProceduralVoxelTerrainScatterer : MonoBehaviour
         return rootObject.transform;
     }
 
-    private void GeneratePrototypeInstances(
+    private int GeneratePrototypeInstances(
         System.Random random,
         ProceduralVoxelTerrain terrain,
         Bounds bounds,
@@ -246,71 +434,253 @@ public class ProceduralVoxelTerrainScatterer : MonoBehaviour
         Transform generatedRoot,
         TerrainScatterPrototype prototype,
         CompositionInfo resolvedComposition,
-        ICollection<GameObject> createdObjects)
+        ICollection<GameObject> createdObjects,
+        int prototypeIndex,
+        int totalPrototypeCount,
+        PrototypeGenerationMetrics metrics)
     {
+        bool collectTimings = metrics != null;
+        long prototypeTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
         List<Vector3> placedPositions = new List<Vector3>(prototype.spawnCount);
         int placedCount = 0;
         int attempts = 0;
-        int maxAttempts = prototype.spawnCount * prototype.maxPlacementAttemptsPerInstance;
-        float densityOffsetX = NextFloat(random, -10000f, 10000f);
-        float densityOffsetZ = NextFloat(random, -10000f, 10000f);
+        int baseAttemptBudget = prototype.spawnCount * prototype.maxPlacementAttemptsPerInstance;
+        int maxAttempts = SpatialPlacementSolver.CalculateAdaptiveMaxAttempts(prototype, bounds);
+        float densityOffsetX = SpatialPlacementSolver.NextFloat(random, -10000f, 10000f);
+        float densityOffsetZ = SpatialPlacementSolver.NextFloat(random, -10000f, 10000f);
+        float scatterOffsetX = SpatialPlacementSolver.NextFloat(random, 0f, 1f);
+        float scatterOffsetZ = SpatialPlacementSolver.NextFloat(random, 0f, 1f);
+        int scatterSequenceStartIndex = random.Next(1, 4096);
+
+        if (collectTimings)
+        {
+            metrics.baseAttemptBudget = baseAttemptBudget;
+            metrics.maxAttempts = maxAttempts;
+        }
+
+        UpdateScatterGenerationProgress(
+            BuildPrototypeProgressStatus(
+                prototype,
+                prototypeIndex,
+                totalPrototypeCount,
+                placedCount,
+                attempts,
+                maxAttempts),
+            ComputeScatterProgress01(ScatterSetupWorkUnitCount, prototypeIndex, 0f, totalPrototypeCount));
+
+        void ReportPrototypeProgress(bool force)
+        {
+            if (!force &&
+                attempts > 0 &&
+                attempts != maxAttempts &&
+                (attempts % ScatterProgressUpdateAttemptInterval) != 0)
+            {
+                return;
+            }
+
+            UpdateScatterGenerationProgress(
+                BuildPrototypeProgressStatus(
+                    prototype,
+                    prototypeIndex,
+                    totalPrototypeCount,
+                    placedCount,
+                    attempts,
+                    maxAttempts),
+                ComputeScatterProgress01(
+                    ScatterSetupWorkUnitCount,
+                    prototypeIndex,
+                    CalculatePrototypeProgress01(prototype.spawnCount, placedCount, attempts, maxAttempts),
+                    totalPrototypeCount));
+        }
 
         while (placedCount < prototype.spawnCount && attempts < maxAttempts)
         {
             attempts++;
-            float normalizedX = NextFloat(random, 0f, 1f);
-            float normalizedZ = NextFloat(random, 0f, 1f);
-            if (!terrain.TrySampleSurface(normalizedX, normalizedZ, out RaycastHit hit))
+            float worldX = Mathf.Lerp(bounds.min.x, bounds.max.x, SpatialPlacementSolver.NextScatterSample01(scatterSequenceStartIndex + attempts, 2, scatterOffsetX));
+            float worldZ = Mathf.Lerp(bounds.min.z, bounds.max.z, SpatialPlacementSolver.NextScatterSample01(scatterSequenceStartIndex + attempts, 3, scatterOffsetZ));
+
+            long stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+            bool usedCachedSurface = terrain.TryGetCachedSurfacePointWorld(
+                worldX,
+                worldZ,
+                out Vector3 screeningSurfacePoint,
+                out Vector3 screeningSurfaceNormal);
+            if (collectTimings)
             {
-                continue;
+                if (usedCachedSurface)
+                {
+                    metrics.cachedScreeningSamples++;
+                }
+                else
+                {
+                    metrics.liveScreeningFallbackSamples++;
+                }
+            }
+            if (!usedCachedSurface)
+            {
+                if (!terrain.TrySampleSurfaceWorld(worldX, worldZ, out RaycastHit fallbackHit))
+                {
+                    if (collectTimings)
+                    {
+                        ScatterTimingUtility.EndTiming(ref metrics.screeningSurfaceTicks, stepTimingStart);
+                        metrics.rejectedScreeningSurfaceMiss++;
+                    }
+                    ReportPrototypeProgress(false);
+                    continue;
+                }
+
+                screeningSurfacePoint = fallbackHit.point;
+                screeningSurfaceNormal = fallbackHit.normal;
+            }
+            if (collectTimings)
+            {
+                ScatterTimingUtility.EndTiming(ref metrics.screeningSurfaceTicks, stepTimingStart);
             }
 
-            Vector3 surfacePoint = hit.point;
-            Vector3 surfaceNormal = hit.normal.sqrMagnitude > 0.0001f ? hit.normal.normalized : Vector3.up;
-            float normalizedHeight = bounds.size.y <= 0.0001f ? 0f : Mathf.Clamp01((surfacePoint.y - bounds.min.y) / bounds.size.y);
-            if (normalizedHeight < prototype.normalizedHeightRange.x || normalizedHeight > prototype.normalizedHeightRange.y)
+            screeningSurfaceNormal = SpatialPlacementSolver.NormalizeSurfaceNormal(screeningSurfaceNormal);
+            stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+            if (!SpatialPlacementSolver.IsWithinPrototypeSurfaceConstraints(screeningSurfacePoint, screeningSurfaceNormal, prototype, bounds))
             {
+                if (collectTimings)
+                {
+                    ScatterTimingUtility.EndTiming(ref metrics.surfaceConstraintTicks, stepTimingStart);
+                    metrics.rejectedScreeningConstraints++;
+                }
+                ReportPrototypeProgress(false);
                 continue;
             }
-
-            float slope = Vector3.Angle(surfaceNormal, Vector3.up);
-            if (slope < prototype.slopeDegreesRange.x || slope > prototype.slopeDegreesRange.y)
+            if (collectTimings)
             {
-                continue;
+                ScatterTimingUtility.EndTiming(ref metrics.surfaceConstraintTicks, stepTimingStart);
             }
 
+            stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
             float density = Mathf.PerlinNoise(
-                (surfacePoint.x + densityOffsetX) / prototype.densityNoiseScale,
-                (surfacePoint.z + densityOffsetZ) / prototype.densityNoiseScale);
+                (screeningSurfacePoint.x + densityOffsetX) / prototype.densityNoiseScale,
+                (screeningSurfacePoint.z + densityOffsetZ) / prototype.densityNoiseScale);
+            if (collectTimings)
+            {
+                ScatterTimingUtility.EndTiming(ref metrics.densityTicks, stepTimingStart);
+            }
             if (density < prototype.densityThreshold)
             {
+                if (collectTimings)
+                {
+                    metrics.rejectedDensity++;
+                }
+                ReportPrototypeProgress(false);
                 continue;
             }
 
+            stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+            if (!SpatialPlacementSolver.IsFarEnoughFromExisting(screeningSurfacePoint, placedPositions, prototype.minimumSpacingMeters))
+            {
+                if (collectTimings)
+                {
+                    ScatterTimingUtility.EndTiming(ref metrics.spacingTicks, stepTimingStart);
+                    metrics.rejectedSpacing++;
+                }
+                ReportPrototypeProgress(false);
+                continue;
+            }
+            if (collectTimings)
+            {
+                ScatterTimingUtility.EndTiming(ref metrics.spacingTicks, stepTimingStart);
+            }
+
+            Vector3 surfacePoint = screeningSurfacePoint;
+            Vector3 surfaceNormal = screeningSurfaceNormal;
+            if (usedCachedSurface)
+            {
+                // Cheap cached screening keeps most attempts off the physics path, but the final placement
+                // still snaps to the live terrain surface so post-carve scatter stays glued to the mesh.
+                stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+                if (!terrain.TrySampleSurfaceWorld(worldX, worldZ, out RaycastHit hit))
+                {
+                    if (collectTimings)
+                    {
+                        ScatterTimingUtility.EndTiming(ref metrics.liveSurfaceTicks, stepTimingStart);
+                        metrics.rejectedLiveSurfaceMiss++;
+                    }
+                    ReportPrototypeProgress(false);
+                    continue;
+                }
+
+                surfacePoint = hit.point;
+                surfaceNormal = SpatialPlacementSolver.NormalizeSurfaceNormal(hit.normal);
+                if (collectTimings)
+                {
+                    ScatterTimingUtility.EndTiming(ref metrics.liveSurfaceTicks, stepTimingStart);
+                }
+            }
+
+            if (usedCachedSurface)
+            {
+                stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+                if (!SpatialPlacementSolver.IsFarEnoughFromExisting(surfacePoint, placedPositions, prototype.minimumSpacingMeters))
+                {
+                    if (collectTimings)
+                    {
+                        ScatterTimingUtility.EndTiming(ref metrics.spacingTicks, stepTimingStart);
+                        metrics.rejectedSpacing++;
+                    }
+                    ReportPrototypeProgress(false);
+                    continue;
+                }
+
+                if (collectTimings)
+                {
+                    ScatterTimingUtility.EndTiming(ref metrics.spacingTicks, stepTimingStart);
+                }
+            }
+
+            stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
+            if (!SpatialPlacementSolver.IsWithinPrototypeSurfaceConstraints(surfacePoint, surfaceNormal, prototype, bounds))
+            {
+                if (collectTimings)
+                {
+                    ScatterTimingUtility.EndTiming(ref metrics.surfaceConstraintTicks, stepTimingStart);
+                    metrics.rejectedLiveConstraints++;
+                }
+                ReportPrototypeProgress(false);
+                continue;
+            }
+            if (collectTimings)
+            {
+                ScatterTimingUtility.EndTiming(ref metrics.surfaceConstraintTicks, stepTimingStart);
+            }
+
+            stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
             if (resolvedWaterSystem != null && resolvedWaterSystem.IsPointUnderWater(surfacePoint, waterExclusionPaddingMeters))
             {
+                if (collectTimings)
+                {
+                    ScatterTimingUtility.EndTiming(ref metrics.waterTicks, stepTimingStart);
+                    metrics.rejectedWater++;
+                }
+                ReportPrototypeProgress(false);
                 continue;
             }
-
-            if (!IsFarEnoughFromExisting(surfacePoint, placedPositions, prototype.minimumSpacingMeters))
+            if (collectTimings)
             {
-                continue;
+                ScatterTimingUtility.EndTiming(ref metrics.waterTicks, stepTimingStart);
             }
 
+            stepTimingStart = ScatterTimingUtility.BeginTiming(collectTimings);
             GameObject placeholder = GameObject.CreatePrimitive(prototype.primitiveType);
             placeholder.name = $"{prototype.ResolveDisplayName()}_{placedCount + 1:000}";
             placeholder.layer = gameObject.layer;
             placeholder.transform.SetParent(generatedRoot, true);
 
-            Vector3 scale = NextVector3(random, prototype.minScale, prototype.maxScale);
+            Vector3 scale = SpatialPlacementSolver.NextVector3(random, prototype.minScale, prototype.maxScale);
             Vector3 upAxis = prototype.alignToSurfaceNormal ? surfaceNormal : Vector3.up;
             Quaternion rotation = Quaternion.FromToRotation(Vector3.up, upAxis);
             if (prototype.randomizeYaw)
             {
-                rotation = Quaternion.AngleAxis(NextFloat(random, 0f, 360f), upAxis) * rotation;
+                rotation = Quaternion.AngleAxis(SpatialPlacementSolver.NextFloat(random, 0f, 360f), upAxis) * rotation;
             }
 
-            float halfHeight = GetPrimitiveHalfHeight(prototype.primitiveType, scale);
+            float halfHeight = SpatialPlacementSolver.GetPrimitiveHalfHeight(prototype.primitiveType, scale);
             placeholder.transform.rotation = rotation;
             placeholder.transform.localScale = scale;
             placeholder.transform.position = surfacePoint + (upAxis * halfHeight);
@@ -324,7 +694,7 @@ public class ProceduralVoxelTerrainScatterer : MonoBehaviour
             HarvestableObject harvestable = placeholder.AddComponent<HarvestableObject>();
             harvestable.Configure(
                 resolvedComposition,
-                NextFloat(random, prototype.totalMassRangeGrams.x, prototype.totalMassRangeGrams.y),
+                SpatialPlacementSolver.NextFloat(random, prototype.totalMassRangeGrams.x, prototype.totalMassRangeGrams.y),
                 prototype.harvestEfficiency,
                 prototype.destroyOnHarvest,
                 prototype.harvestsRequired,
@@ -333,12 +703,29 @@ public class ProceduralVoxelTerrainScatterer : MonoBehaviour
             createdObjects?.Add(placeholder);
             placedPositions.Add(surfacePoint);
             placedCount++;
+            if (collectTimings)
+            {
+                ScatterTimingUtility.EndTiming(ref metrics.instantiationTicks, stepTimingStart);
+                metrics.acceptedCount = placedCount;
+                metrics.attempts = attempts;
+            }
+            ReportPrototypeProgress(true);
+        }
+
+        if (collectTimings)
+        {
+            metrics.totalTicks = ScatterTimingUtility.GetElapsedTicks(prototypeTimingStart);
+            metrics.acceptedCount = placedCount;
+            metrics.attempts = attempts;
         }
 
         if (placedCount < prototype.spawnCount)
         {
-            Debug.LogWarning($"{gameObject.name} only placed {placedCount} of {prototype.spawnCount} requested voxel instances for {prototype.ResolveDisplayName()}.");
+            Debug.LogWarning(
+                $"{gameObject.name} only placed {placedCount} of {prototype.spawnCount} requested voxel instances for {prototype.ResolveDisplayName()} after {attempts} of {maxAttempts} attempts.");
         }
+
+        return placedCount;
     }
 
     private static Material ResolveRenderMaterial(TerrainScatterPrototype prototype)
@@ -370,143 +757,127 @@ public class ProceduralVoxelTerrainScatterer : MonoBehaviour
         return material;
     }
 
-    private static bool IsFarEnoughFromExisting(Vector3 position, IReadOnlyList<Vector3> existingPositions, float minimumSpacingMeters)
+    private void BeginScatterGenerationProgress()
     {
-        if (minimumSpacingMeters <= 0f || existingPositions == null || existingPositions.Count == 0)
-        {
-            return true;
-        }
-
-        float minimumSpacingSquared = minimumSpacingMeters * minimumSpacingMeters;
-        for (int i = 0; i < existingPositions.Count; i++)
-        {
-            Vector3 planarDelta = Vector3.ProjectOnPlane(position - existingPositions[i], Vector3.up);
-            if (planarDelta.sqrMagnitude < minimumSpacingSquared)
-            {
-                return false;
-            }
-        }
-
-        return true;
+        isScatterGenerationInProgress = true;
+        scatterGenerationProgress01 = 0f;
+        scatterGenerationStatus = "Preparing voxel scatter generation";
+        UpdateEditorScatterProgressSurface();
     }
 
-    private static float GetPrimitiveHalfHeight(PrimitiveType primitiveType, Vector3 scale)
+    private void FinishScatterGenerationProgress(bool success)
     {
-        switch (primitiveType)
+        if (success)
         {
-            case PrimitiveType.Cylinder:
-            case PrimitiveType.Capsule:
-                return scale.y;
+            scatterGenerationProgress01 = 1f;
+            scatterGenerationStatus = "Voxel scatter generation complete";
+        }
 
-            default:
-                return scale.y * 0.5f;
+        UpdateEditorScatterProgressSurface();
+        isScatterGenerationInProgress = false;
+        UpdateEditorScatterProgressSurface(clearProgressBar: true);
+
+        if (!success)
+        {
+            scatterGenerationProgress01 = 0f;
+            scatterGenerationStatus = string.Empty;
         }
     }
 
-    private static Vector3 NextVector3(System.Random random, Vector3 min, Vector3 max)
+    private void UpdateScatterGenerationProgress(string status, float progress01)
     {
-        return new Vector3(
-            NextFloat(random, min.x, max.x),
-            NextFloat(random, min.y, max.y),
-            NextFloat(random, min.z, max.z));
+        scatterGenerationStatus = string.IsNullOrWhiteSpace(status)
+            ? "Preparing voxel scatter generation"
+            : status;
+        scatterGenerationProgress01 = Mathf.Clamp01(progress01);
+        UpdateEditorScatterProgressSurface();
     }
 
-    private static float NextFloat(System.Random random, float minInclusive, float maxInclusive)
+    private void UpdateEditorScatterProgressSurface(bool clearProgressBar = false)
     {
-        if (Mathf.Approximately(minInclusive, maxInclusive))
+#if UNITY_EDITOR
+        if (Application.isPlaying)
         {
-            return minInclusive;
+            return;
         }
 
-        float min = Mathf.Min(minInclusive, maxInclusive);
-        float max = Mathf.Max(minInclusive, maxInclusive);
-        return (float)(min + (random.NextDouble() * (max - min)));
+        if (clearProgressBar)
+        {
+            EditorUtility.ClearProgressBar();
+            SceneView.RepaintAll();
+            return;
+        }
+
+        if (!isScatterGenerationInProgress)
+        {
+            return;
+        }
+
+        EditorUtility.DisplayProgressBar(
+            $"Generating {name}",
+            scatterGenerationStatus,
+            scatterGenerationProgress01);
+        SceneView.RepaintAll();
+#endif
     }
 
-    private static List<TerrainScatterPrototype> BuildOlympicRainforestPrototypes()
+    private static float ComputeScatterProgress01(int completedSetupSteps, int completedPrototypeCount, float activePrototypeProgress01, int totalPrototypeCount)
     {
-        return new List<TerrainScatterPrototype>
-        {
-            new TerrainScatterPrototype
-            {
-                displayName = "Douglas-fir Placeholder",
-                primitiveType = PrimitiveType.Cylinder,
-                compositionItemName = "Foliage (Needles)",
-                colorTint = new Color(0.18f, 0.33f, 0.17f),
-                minScale = new Vector3(0.65f, 5.5f, 0.65f),
-                maxScale = new Vector3(1.2f, 9.25f, 1.2f),
-                spawnCount = 120,
-                totalMassRangeGrams = new Vector2(420f, 900f),
-                normalizedHeightRange = new Vector2(0.16f, 0.95f),
-                slopeDegreesRange = new Vector2(2f, 36f),
-                densityNoiseScale = 62f,
-                densityThreshold = 0.44f,
-                minimumSpacingMeters = 7f
-            },
-            new TerrainScatterPrototype
-            {
-                displayName = "Western Red Cedar Placeholder",
-                primitiveType = PrimitiveType.Cylinder,
-                compositionItemName = "Foliage (Needles)",
-                colorTint = new Color(0.16f, 0.44f, 0.28f),
-                minScale = new Vector3(0.9f, 4.2f, 0.9f),
-                maxScale = new Vector3(1.6f, 7.2f, 1.6f),
-                spawnCount = 78,
-                totalMassRangeGrams = new Vector2(350f, 780f),
-                normalizedHeightRange = new Vector2(0.04f, 0.52f),
-                slopeDegreesRange = new Vector2(0f, 24f),
-                densityNoiseScale = 46f,
-                densityThreshold = 0.53f,
-                minimumSpacingMeters = 7.5f
-            },
-            new TerrainScatterPrototype
-            {
-                displayName = "Red Alder Placeholder",
-                primitiveType = PrimitiveType.Cube,
-                compositionItemName = "Foliage (Broadleaves)",
-                colorTint = new Color(0.43f, 0.62f, 0.29f),
-                minScale = new Vector3(1.6f, 4f, 1.6f),
-                maxScale = new Vector3(3.2f, 7f, 3.2f),
-                spawnCount = 58,
-                totalMassRangeGrams = new Vector2(320f, 760f),
-                normalizedHeightRange = new Vector2(0.03f, 0.34f),
-                slopeDegreesRange = new Vector2(0f, 16f),
-                densityNoiseScale = 36f,
-                densityThreshold = 0.6f,
-                minimumSpacingMeters = 9f
-            },
-            new TerrainScatterPrototype
-            {
-                displayName = "Bigleaf Maple Placeholder",
-                primitiveType = PrimitiveType.Cube,
-                compositionItemName = "Foliage (Broadleaves)",
-                colorTint = new Color(0.31f, 0.55f, 0.2f),
-                minScale = new Vector3(1.8f, 4.5f, 1.8f),
-                maxScale = new Vector3(3.6f, 7.8f, 3.6f),
-                spawnCount = 28,
-                totalMassRangeGrams = new Vector2(380f, 900f),
-                normalizedHeightRange = new Vector2(0.04f, 0.42f),
-                slopeDegreesRange = new Vector2(0f, 22f),
-                densityNoiseScale = 52f,
-                densityThreshold = 0.66f,
-                minimumSpacingMeters = 10f
-            },
-            new TerrainScatterPrototype
-            {
-                displayName = "Serviceberry Placeholder",
-                primitiveType = PrimitiveType.Cube,
-                compositionItemName = "Serviceberry Foliage",
-                colorTint = new Color(0.53f, 0.73f, 0.35f),
-                minScale = new Vector3(0.8f, 1f, 0.8f),
-                maxScale = new Vector3(1.4f, 2f, 1.4f),
-                spawnCount = 88,
-                totalMassRangeGrams = new Vector2(120f, 280f),
-                normalizedHeightRange = new Vector2(0.1f, 0.72f),
-                slopeDegreesRange = new Vector2(0f, 28f),
-                densityNoiseScale = 28f,
-                densityThreshold = 0.55f,
-                minimumSpacingMeters = 3.5f
-            }
-        };
+        float totalWorkUnits = ScatterSetupWorkUnitCount + Mathf.Max(0, totalPrototypeCount);
+        float completedWorkUnits = Mathf.Clamp(completedSetupSteps, 0, ScatterSetupWorkUnitCount)
+            + Mathf.Clamp(completedPrototypeCount, 0, Mathf.Max(0, totalPrototypeCount))
+            + Mathf.Clamp01(activePrototypeProgress01);
+        return totalWorkUnits <= 0.0001f
+            ? 1f
+            : Mathf.Clamp01(completedWorkUnits / totalWorkUnits);
     }
+
+    private static float CalculatePrototypeProgress01(int requestedCount, int placedCount, int attempts, int maxAttempts)
+    {
+        float placementProgress = requestedCount <= 0
+            ? 1f
+            : Mathf.Clamp01(placedCount / (float)Mathf.Max(1, requestedCount));
+        float attemptProgress = maxAttempts <= 0
+            ? 1f
+            : Mathf.Clamp01(attempts / (float)Mathf.Max(1, maxAttempts));
+        return Mathf.Max(placementProgress, attemptProgress);
+    }
+
+    private static string BuildPrototypeProgressStatus(
+        TerrainScatterPrototype prototype,
+        int prototypeIndex,
+        int totalPrototypeCount,
+        int placedCount,
+        int attempts,
+        int maxAttempts)
+    {
+        string prototypeName = prototype != null ? prototype.ResolveDisplayName() : "Scatter Prototype";
+        int requestedCount = prototype != null ? prototype.spawnCount : 0;
+        return $"Scatter generation: prototype {prototypeIndex + 1}/{Mathf.Max(1, totalPrototypeCount)} {prototypeName} ({placedCount}/{requestedCount}) attempts {attempts}/{Mathf.Max(1, maxAttempts)}";
+    }
+
+    private void LogScatterGenerationTimingsSummary(ScatterGenerationMetrics generationMetrics, int createdObjectCount)
+    {
+        if (generationMetrics == null)
+        {
+            return;
+        }
+
+        long prototypeTicks = 0L;
+        for (int i = 0; i < generationMetrics.prototypeMetrics.Count; i++)
+        {
+            PrototypeGenerationMetrics prototypeMetrics = generationMetrics.prototypeMetrics[i];
+            prototypeTicks += prototypeMetrics.totalTicks;
+            Debug.Log(ScatterTimingUtility.BuildPrototypeTimingSummary(prototypeMetrics), this);
+        }
+
+        Debug.Log(
+            $"[{nameof(ProceduralVoxelTerrainScatterer)}:{name}] GenerateScatter completed in {ScatterTimingUtility.FormatTimingMilliseconds(generationMetrics.totalTicks)}. " +
+            $"Spawned {createdObjectCount} objects. Steps: terrain={ScatterTimingUtility.FormatTimingMilliseconds(generationMetrics.resolveTerrainTicks)}, " +
+            $"water={ScatterTimingUtility.FormatTimingMilliseconds(generationMetrics.resolveWaterTicks)}, clear={ScatterTimingUtility.FormatTimingMilliseconds(generationMetrics.clearTicks)}, " +
+            $"bounds={ScatterTimingUtility.FormatTimingMilliseconds(generationMetrics.boundsTicks)}, root={ScatterTimingUtility.FormatTimingMilliseconds(generationMetrics.rootTicks)}, " +
+            $"prototypes={ScatterTimingUtility.FormatTimingMilliseconds(prototypeTicks)}.",
+            this);
+    }
+
 }

@@ -5,7 +5,13 @@ using System.Linq;
 
 public class PlayerInteraction : MonoBehaviour
 {
-    private const float TriggerBypassDistanceMeters = 4f;
+    // Prefer a trigger harvestable (e.g. water surface) over a solid harvestable
+    // only when the trigger is strictly nearer. A value of 0f means: return solid
+    // when solid distance <= trigger distance (solid is at least as close), and
+    // return trigger when trigger distance < solid distance (trigger is nearer).
+    // Using 4f here caused solid to ALWAYS win within the 3m interaction range,
+    // making freshwater triggers permanently unreachable.
+    private const float TriggerBypassDistanceMeters = 0f;
 
     [Header("References")]
     [SerializeField] private Inventory playerInventory;
@@ -101,21 +107,16 @@ public class PlayerInteraction : MonoBehaviour
 
             if (hits[i].collider.isTrigger)
             {
-                if (nearestTriggerHarvestable == null)
+                if (hits[i].distance < nearestTriggerDistance)
                 {
                     nearestTriggerHarvestable = candidate;
                     nearestTriggerDistance = hits[i].distance;
                 }
             }
-            else if (nearestSolidHarvestable == null)
+            else if (hits[i].distance < nearestSolidDistance)
             {
                 nearestSolidHarvestable = candidate;
                 nearestSolidDistance = hits[i].distance;
-            }
-
-            if (nearestTriggerHarvestable != null && nearestSolidHarvestable != null)
-            {
-                break;
             }
         }
 

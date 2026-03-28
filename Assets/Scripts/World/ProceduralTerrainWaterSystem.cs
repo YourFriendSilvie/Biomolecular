@@ -39,6 +39,7 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
     [SerializeField] private bool generateOcean = true;
     [SerializeField, Min(0f)] private float seaLevelMeters = 4.8f;
     [SerializeField, Min(1f)] private float oceanPaddingMeters = 220f;
+    [SerializeField, Min(0.1f)] private float oceanDepthEquivalentMeters = 12f;
 
     [Header("Freshwater")]
     [SerializeField] private bool generateFreshwater = true;
@@ -61,9 +62,11 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
 
     private readonly List<GeneratedLake> generatedLakes = new List<GeneratedLake>();
     private readonly List<GeneratedRiverSegment> generatedRiverSegments = new List<GeneratedRiverSegment>();
+    private GameObject generatedOceanObject;
+    private FinitePlaneWaterHarvestable generatedOceanHarvestable;
 
     public bool ClearExistingBeforeGenerate => clearExistingBeforeGenerate;
-    public float SeaLevelMeters => seaLevelMeters;
+    public float SeaLevelMeters => GetCurrentOceanSurfaceY();
 
     private void Reset()
     {
@@ -75,6 +78,7 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
         generatedRootName = string.IsNullOrWhiteSpace(generatedRootName) ? DefaultGeneratedRootName : generatedRootName.Trim();
         seaLevelMeters = Mathf.Max(0f, seaLevelMeters);
         oceanPaddingMeters = Mathf.Max(1f, oceanPaddingMeters);
+        oceanDepthEquivalentMeters = Mathf.Max(0.1f, oceanDepthEquivalentMeters);
         lakeCount = Mathf.Clamp(lakeCount, 0, 4);
         lakeRadiusRangeMeters = new Vector2(
             Mathf.Max(1f, Mathf.Min(lakeRadiusRangeMeters.x, lakeRadiusRangeMeters.y)),
@@ -97,6 +101,7 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
     {
         seaLevelMeters = 4.8f;
         oceanPaddingMeters = 220f;
+        oceanDepthEquivalentMeters = 12f;
         lakeCount = 2;
         lakeRadiusRangeMeters = new Vector2(10f, 18f);
         lakeDepthMeters = 1.8f;
@@ -183,6 +188,8 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
         Transform generatedRoot = GetGeneratedRoot();
         if (generatedRoot == null)
         {
+            generatedOceanObject = null;
+            generatedOceanHarvestable = null;
             return false;
         }
 
@@ -197,6 +204,8 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
 
         generatedLakes.Clear();
         generatedRiverSegments.Clear();
+        generatedOceanObject = null;
+        generatedOceanHarvestable = null;
         return true;
     }
 
@@ -212,12 +221,12 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
             terrain.transform.position + new Vector3(terrain.terrainData.size.x * 0.5f, terrain.terrainData.size.y * 0.5f, terrain.terrainData.size.z * 0.5f),
             terrain.terrainData.size);
 
-        if (generateOcean &&
-            worldPoint.x >= terrainBounds.min.x &&
-            worldPoint.x <= terrainBounds.max.x &&
-            worldPoint.z >= terrainBounds.min.z &&
-            worldPoint.z <= terrainBounds.max.z &&
-            worldPoint.y <= seaLevelMeters + paddingMeters)
+        if (TryGetOceanBounds(out Bounds oceanBounds) &&
+            worldPoint.x >= oceanBounds.min.x &&
+            worldPoint.x <= oceanBounds.max.x &&
+            worldPoint.z >= oceanBounds.min.z &&
+            worldPoint.z <= oceanBounds.max.z &&
+            worldPoint.y <= GetCurrentOceanSurfaceY() + paddingMeters)
         {
             return true;
         }
@@ -583,7 +592,16 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
             waterSurfaceThicknessMeters,
             terrainData.size.z + (oceanPaddingMeters * 2f));
 
-        ConfigureWaterObject(ocean, ResolveSaltWaterMaterial(), seaWaterComposition);
+        ConfigureWaterObject(ocean, ResolveSaltWaterMaterial(), seaWaterComposition, false);
+        generatedOceanObject = ocean;
+        generatedOceanHarvestable = EnsureFinitePlaneWaterHarvestable(
+            ocean,
+            seaWaterComposition,
+            DefaultHarvestedWaterMassGrams,
+            ocean.transform.localScale.x * ocean.transform.localScale.z * oceanDepthEquivalentMeters,
+            seaLevelMeters,
+            ocean.transform.localScale.x * ocean.transform.localScale.z,
+            waterSurfaceThicknessMeters);
     }
 
     private void CreateLakeObject(GeneratedLake lake, Transform generatedRoot)
@@ -632,7 +650,7 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
         ConfigureWaterObject(riverObject, ResolveFreshWaterMaterial(), freshWaterComposition);
     }
 
-    private void ConfigureWaterObject(GameObject waterObject, Material material, CompositionInfo composition)
+    private void ConfigureWaterObject(GameObject waterObject, Material material, CompositionInfo composition, bool attachHarvestable = true)
     {
         if (waterObject == null)
         {
@@ -653,7 +671,7 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
             collider.isTrigger = useTriggerColliders;
         }
 
-        if (composition != null)
+        if (attachHarvestable && composition != null)
         {
             HarvestableObject harvestable = waterObject.AddComponent<HarvestableObject>();
             harvestable.Configure(
@@ -664,6 +682,74 @@ public class ProceduralTerrainWaterSystem : MonoBehaviour
                 1,
                 false);
         }
+    }
+
+    private FinitePlaneWaterHarvestable EnsureFinitePlaneWaterHarvestable(
+        GameObject waterObject,
+        CompositionInfo composition,
+        float harvestMassGrams,
+        float totalVolumeCubicMeters,
+        float surfaceY,
+        float surfaceAreaSquareMeters,
+        float visibleThicknessMeters)
+    {
+        if (waterObject == null || composition == null)
+        {
+            return null;
+        }
+
+        HarvestableObject staticHarvestable = waterObject.GetComponent<HarvestableObject>();
+        if (staticHarvestable != null)
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(staticHarvestable);
+            }
+            else
+            {
+                DestroyImmediate(staticHarvestable);
+            }
+        }
+
+        FinitePlaneWaterHarvestable harvestable = waterObject.GetComponent<FinitePlaneWaterHarvestable>();
+        if (harvestable == null)
+        {
+            harvestable = waterObject.AddComponent<FinitePlaneWaterHarvestable>();
+        }
+
+        harvestable.Configure(
+            composition,
+            harvestMassGrams,
+            totalVolumeCubicMeters,
+            surfaceY,
+            surfaceAreaSquareMeters,
+            visibleThicknessMeters);
+        return harvestable;
+    }
+
+    private float GetCurrentOceanSurfaceY()
+    {
+        return generatedOceanHarvestable != null
+            ? generatedOceanHarvestable.CurrentSurfaceY
+            : seaLevelMeters;
+    }
+
+    private bool TryGetOceanBounds(out Bounds oceanBounds)
+    {
+        oceanBounds = default;
+        if (!generateOcean || generatedOceanHarvestable == null || !generatedOceanHarvestable.HasWater || generatedOceanObject == null)
+        {
+            return false;
+        }
+
+        Collider oceanCollider = generatedOceanObject.GetComponent<Collider>();
+        if (oceanCollider == null || !oceanCollider.enabled)
+        {
+            return false;
+        }
+
+        oceanBounds = oceanCollider.bounds;
+        return true;
     }
 
     private Material ResolveFreshWaterMaterial()
