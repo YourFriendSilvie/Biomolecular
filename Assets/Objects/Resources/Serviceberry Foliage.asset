@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9849a2a03987f374ba5b361428d637de, type: 3}
+  m_Name: Serviceberry Foliage
+  m_EditorClassIdentifier: Assembly-CSharp::CompositionInfo
+  itemName: Serviceberry Foliage
+  texture: {fileID: 0}
+  composition:
+  - resource: Water
+    percentage: 63
+    useRandomRange: 0
+    minPercentage: 61
+    maxPercentage: 65
+  - resource: Cellulose
+    percentage: 10
+    useRandomRange: 0
+    minPercentage: 9.5
+    maxPercentage: 10.5
+  - resource: Hemicellulose
+    percentage: 5.5
+    useRandomRange: 0
+    minPercentage: 5
+    maxPercentage: 6
+  - resource: Lignin
+    percentage: 3.2
+    useRandomRange: 0
+    minPercentage: 2.9
+    maxPercentage: 3.5
+  - resource: Tannin
+    percentage: 4.8
+    useRandomRange: 0
+    minPercentage: 4.3
+    maxPercentage: 5.3
+  - resource: Cuticular Waxes
+    percentage: 2.8
+    useRandomRange: 0
+    minPercentage: 2.4
+    maxPercentage: 3.2
+  - resource: Starch
+    percentage: 2.4
+    useRandomRange: 0
+    minPercentage: 2.1
+    maxPercentage: 2.7
+  - resource: Sugar
+    percentage: 1.3
+    useRandomRange: 0
+    minPercentage: 1
+    maxPercentage: 1.6
+  - resource: Chlorophyll
+    percentage: 1.3
+    useRandomRange: 0
+    minPercentage: 1.1
+    maxPercentage: 1.5
+  - resource: Protiens
+    percentage: 3.6
+    useRandomRange: 0
+    minPercentage: 3.2
+    maxPercentage: 4
+  - resource: Calcium Carbonate
+    percentage: 0.8
+    useRandomRange: 0
+    minPercentage: 0.7
+    maxPercentage: 0.9
+  - resource: Potassium Oxide
+    percentage: 0.8
+    useRandomRange: 0
+    minPercentage: 0.7
+    maxPercentage: 0.9
+  - resource: Magnesium Oxide
+    percentage: 0.5
+    useRandomRange: 0
+    minPercentage: 0.4
+    maxPercentage: 0.6

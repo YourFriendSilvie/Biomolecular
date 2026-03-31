@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9849a2a03987f374ba5b361428d637de, type: 3}
+  m_Name: Serviceberry Blossoms
+  m_EditorClassIdentifier: Assembly-CSharp::CompositionInfo
+  itemName: Serviceberry Blossoms
+  texture: {fileID: 0}
+  composition:
+  - resource: Water
+    percentage: 74
+    useRandomRange: 0
+    minPercentage: 72
+    maxPercentage: 76
+  - resource: Cellulose
+    percentage: 4
+    useRandomRange: 0
+    minPercentage: 3.5
+    maxPercentage: 4.5
+  - resource: Hemicellulose
+    percentage: 2
+    useRandomRange: 0
+    minPercentage: 1.7
+    maxPercentage: 2.3
+  - resource: Sugar
+    percentage: 8.5
+    useRandomRange: 0
+    minPercentage: 7.8
+    maxPercentage: 9.2
+  - resource: Starch
+    percentage: 1.5
+    useRandomRange: 0
+    minPercentage: 1.2
+    maxPercentage: 1.8
+  - resource: Protiens
+    percentage: 4.5
+    useRandomRange: 0
+    minPercentage: 4
+    maxPercentage: 5
+  - resource: Pectin
+    percentage: 2.5
+    useRandomRange: 0
+    minPercentage: 2.2
+    maxPercentage: 2.8
+  - resource: Floral Volatiles
+    percentage: 1.2
+    useRandomRange: 0
+    minPercentage: 1
+    maxPercentage: 1.4
+  - resource: Calcium Carbonate
+    percentage: 0.8
+    useRandomRange: 0
+    minPercentage: 0.7
+    maxPercentage: 0.9
+  - resource: Potassium Oxide
+    percentage: 0.6
+    useRandomRange: 0
+    minPercentage: 0.5
+    maxPercentage: 0.7
+  - resource: Magnesium Oxide
+    percentage: 0.4
+    useRandomRange: 0
+    minPercentage: 0.3
+    maxPercentage: 0.5

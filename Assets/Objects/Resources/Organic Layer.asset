@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9849a2a03987f374ba5b361428d637de, type: 3}
+  m_Name: Organic Layer
+  m_EditorClassIdentifier: Assembly-CSharp::CompositionInfo
+  itemName: Organic Layer
+  texture: {fileID: 0}
+  composition:
+  - resource: Water
+    percentage: 30
+    useRandomRange: 0
+    minPercentage: 24
+    maxPercentage: 36
+  - resource: Organic Matter
+    percentage: 42
+    useRandomRange: 0
+    minPercentage: 36
+    maxPercentage: 48
+  - resource: Silicon Dioxide
+    percentage: 12
+    useRandomRange: 0
+    minPercentage: 8
+    maxPercentage: 16
+  - resource: Aluminum Oxide
+    percentage: 6
+    useRandomRange: 0
+    minPercentage: 4
+    maxPercentage: 8
+  - resource: Iron Oxide
+    percentage: 3
+    useRandomRange: 0
+    minPercentage: 1
+    maxPercentage: 5
+  - resource: Calcium Carbonate
+    percentage: 2
+    useRandomRange: 0
+    minPercentage: 1
+    maxPercentage: 4
+  - resource: Potassium Oxide
+    percentage: 3
+    useRandomRange: 0
+    minPercentage: 1
+    maxPercentage: 5
+  - resource: Magnesium Oxide
+    percentage: 2
+    useRandomRange: 0
+    minPercentage: 1
+    maxPercentage: 4

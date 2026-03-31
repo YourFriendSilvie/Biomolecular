@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bb0c5008bea4ce9877b7860af58c279, type: 3}
+  m_Name: Douglas-fir
+  m_EditorClassIdentifier: Assembly-CSharp::TreeSpeciesData
+  commonName: Douglas-fir
+  scientificName: Pseudotsuga menziesii
+  evergreen: 1
+  foliageUnitName: needle cluster
+  foliageRenderStyle: 4
+  foliageCardMaterial: {fileID: 2100000, guid: dfa8a07815bb7584f980b43dc8b5eaab, type: 2}
+  foliageElementLengthScale: 1.45
+  foliageElementWidthScale: 2.15
+  foliageCardPlaneCount: 3
+  trunkGreenDensityKgPerCubicMeter: 730
+  branchGreenDensityKgPerCubicMeter: 690
+  barkGreenDensityKgPerCubicMeter: 520
+  barkVolumeFraction: 0.12
+  trunkDryMassFraction: 0.62
+  branchDryMassFraction: 0.6
+  barkDryMassFraction: 0.58
+  foliageDryMassFraction: 0.43
+  foliageWetMassPerUnitGrams: 0.22
+  foliageWetBulkDensityKgPerCubicMeter: 0.85
+  fallbackBranchVolumeRatio: 0.32
+  woodyComposition: {fileID: 11400000, guid: efbba4f7ccd0f7a4182ba730c5e01236, type: 2}
+  foliageComposition: {fileID: 11400000, guid: 4165b2e36c177cc47969cd2b646704a6, type: 2}
+  generationProfile:
+    heightRangeMeters: {x: 30, y: 55}
+    trunkRadiusRangeMeters: {x: 0.25, y: 0.75}
+    crownRadiusRangeMeters: {x: 4, y: 8}
+    crownBaseHeightFraction: 0.24
+    crownHeightFraction: 0.76
+    crownShape: 0
+    branchCountRange: {x: 32, y: 48}
+    branchLengthScaleRange: {x: 0.8, y: 1.05}
+    branchRadiusScaleRange: {x: 0.11, y: 0.18}
+    branchPitchDegreesRange: {x: -38, y: -10}
+    trunkTopRadiusFraction: 0.09
+    branchTipRadiusFraction: 0.14
+    trunkBendStrength: 0.03
+    branchBendStrength: 0.16
+    foliageUnitsPerCubicMeterRange: {x: 140, y: 220}
+    foliageClusterCountRange: {x: 38, y: 60}
+    foliageClusterRadiusRangeMeters: {x: 0.45, y: 1.05}
+    radialSegments: 8
+    trunkSegments: 10
+    branchSegments: 5
+    foliageLongitudeSegments: 10
+    foliageLatitudeSegments: 6

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 658b7a377327c9d4b8030b12bf0f6f1f, type: 3}
+  m_Name: Pyrolyze Dry Biomass
+  m_EditorClassIdentifier: Assembly-CSharp::ProcessingRecipe
+  recipeName: Pyrolyze Dry Biomass
+  requiredMachine: 9
+  inputs:
+  - resourceName: Cellulose
+    requiredMassGrams: 70
+    consumedMassGrams: 70
+  - resourceName: Lignin
+    requiredMassGrams: 30
+    consumedMassGrams: 30
+  outputs:
+  - composition: {fileID: 11400000, guid: 7c12c9f25e2cb5043abc232055eb3d74, type: 2}
+    massGrams: 45
+    yieldFraction: 1
+  - composition: {fileID: 11400000, guid: cc78f97441fd07f45ad64697ec040f99, type: 2}
+    massGrams: 20
+    yieldFraction: 1
+  - composition: {fileID: 11400000, guid: 65e6bbacf200f10408db0c73aeda6b7c, type: 2}
+    massGrams: 20
+    yieldFraction: 1
+  processingTimeSeconds: 50
+  requiredWatts: 800

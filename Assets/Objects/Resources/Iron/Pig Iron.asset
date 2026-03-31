@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9849a2a03987f374ba5b361428d637de, type: 3}
+  m_Name: Pig Iron
+  m_EditorClassIdentifier: Assembly-CSharp::CompositionInfo
+  itemName: Pig Iron
+  texture: {fileID: 0}
+  composition:
+  - resource: Iron
+    percentage: 96
+    useRandomRange: 0
+    minPercentage: 0
+    maxPercentage: 100
+  - resource: Carbon
+    percentage: 3
+    useRandomRange: 0
+    minPercentage: 0
+    maxPercentage: 100
+  - resource: Slag
+    percentage: 1
+    useRandomRange: 0
+    minPercentage: 0
+    maxPercentage: 100

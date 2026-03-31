@@ -48,3 +48,98 @@ The following packages were updated:
   com.unity.test-framework from version 1.4.2 to 1.6.0
   com.unity.timeline from version 1.8.6 to 1.8.9
   com.unity.visualscripting from version 1.9.1 to 1.9.7
+
+=== Fri Nov 14 16:15:55 2025
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.ai.navigation from version 2.0.0 to 2.0.9
+  com.unity.burst from version 1.8.13 to 1.8.25
+  com.unity.cinemachine from version 2.10.0 to 2.10.4
+  com.unity.collab-proxy from version 2.5.1 to 2.9.3
+  com.unity.collections from version 2.4.0 to 2.5.7
+  com.unity.ide.rider from version 3.0.28 to 3.0.38
+  com.unity.ide.visualstudio from version 2.0.22 to 2.0.23
+  com.unity.inputsystem from version 1.8.1 to 1.14.2
+  com.unity.mathematics from version 1.3.1 to 1.3.2
+  com.unity.nuget.mono-cecil from version 1.11.4 to 1.11.5
+  com.unity.render-pipelines.core from version 17.0.3 to 17.2.0
+  com.unity.render-pipelines.universal from version 17.0.3 to 17.2.0
+  com.unity.shadergraph from version 17.0.3 to 17.2.0
+  com.unity.test-framework from version 1.4.3 to 1.6.0
+  com.unity.test-framework.performance from version 3.0.3 to 3.2.0
+  com.unity.timeline from version 1.8.6 to 1.8.9
+  com.unity.visualscripting from version 1.9.4 to 1.9.7
+
+=== Fri Nov 14 16:15:55 2025
+
+Packages were changed.
+Update Mode: mergeDefaultDependencies
+
+The following packages were added:
+  com.unity.burst@1.8.25
+  com.unity.cinemachine@2.10.4
+  com.unity.collections@2.5.7
+  com.unity.ext.nunit@2.0.5
+  com.unity.mathematics@1.3.2
+  com.unity.nuget.mono-cecil@1.11.5
+  com.unity.package-validation-suite@0.22.0-preview
+  com.unity.render-pipelines.core@17.2.0
+  com.unity.render-pipelines.universal-config@17.0.3
+  com.unity.rendering.light-transport@1.0.1
+  com.unity.searcher@4.9.2
+  com.unity.shadergraph@17.2.0
+  com.unity.test-framework.performance@3.2.0
+  com.unity.modules.hierarchycore@1.0.0
+  com.unity.modules.subsystems@1.0.0
+
+=== Fri Nov 14 16:54:42 2025
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.inputsystem from version 1.8.2 to 1.14.2
+  com.unity.collections from version 2.4.1 to 2.5.7
+  com.unity.render-pipelines.universal from version 17.0.3 to 17.2.0
+  com.unity.render-pipelines.core from version 17.0.3 to 17.2.0
+
+=== Fri Nov 14 16:54:42 2025
+
+Packages were changed.
+Update Mode: mergeDefaultDependencies
+
+The following packages were updated:
+  com.unity.cinemachine from version 2.10.4 to 3.1.2
+
+=== Wed Mar 25 12:20:18 2026
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were added:
+  com.unity.modules.adaptiveperformance@1.0.0
+  com.unity.modules.vectorgraphics@1.0.0
+The following packages were updated:
+  com.unity.ai.navigation from version 2.0.9 to 2.0.11
+  com.unity.asset-manager-for-unity from version 1.8.0 to 1.10.0
+  com.unity.burst from version 1.8.25 to 1.8.28
+  com.unity.collab-proxy from version 2.9.3 to 2.11.4
+  com.unity.collections from version 2.5.7 to 6.4.0
+  com.unity.ide.rider from version 3.0.38 to 3.0.39
+  com.unity.ide.visualstudio from version 2.0.23 to 2.0.27
+  com.unity.inputsystem from version 1.14.2 to 1.19.0
+  com.unity.mathematics from version 1.3.2 to 1.3.3
+  com.unity.multiplayer.center from version 1.0.0 to 1.0.1
+  com.unity.nuget.mono-cecil from version 1.11.5 to 1.11.6
+  com.unity.render-pipelines.core from version 17.2.0 to 17.4.0
+  com.unity.render-pipelines.universal from version 17.2.0 to 17.4.0
+  com.unity.render-pipelines.universal-config from version 17.0.3 to 17.4.0
+  com.unity.searcher from version 4.9.2 to 4.9.4
+  com.unity.shadergraph from version 17.2.0 to 17.4.0
+  com.unity.timeline from version 1.8.9 to 1.8.11
+  com.unity.visualscripting from version 1.9.7 to 1.9.10
+The following packages were removed:
+  com.unity.rendering.light-transport@1.0.1

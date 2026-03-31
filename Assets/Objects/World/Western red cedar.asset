@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bb0c5008bea4ce9877b7860af58c279, type: 3}
+  m_Name: Western red cedar
+  m_EditorClassIdentifier: Assembly-CSharp::TreeSpeciesData
+  commonName: Western red cedar
+  scientificName: Thuja plicata
+  evergreen: 1
+  foliageUnitName: scale spray
+  foliageRenderStyle: 5
+  foliageCardMaterial: {fileID: 0}
+  foliageElementLengthScale: 1.15
+  foliageElementWidthScale: 1.25
+  foliageCardPlaneCount: 2
+  trunkGreenDensityKgPerCubicMeter: 590
+  branchGreenDensityKgPerCubicMeter: 560
+  barkGreenDensityKgPerCubicMeter: 430
+  barkVolumeFraction: 0.1
+  trunkDryMassFraction: 0.53
+  branchDryMassFraction: 0.5
+  barkDryMassFraction: 0.48
+  foliageDryMassFraction: 0.42
+  foliageWetMassPerUnitGrams: 0.24
+  foliageWetBulkDensityKgPerCubicMeter: 0.75
+  fallbackBranchVolumeRatio: 0.28
+  woodyComposition: {fileID: 11400000, guid: efbba4f7ccd0f7a4182ba730c5e01236, type: 2}
+  foliageComposition: {fileID: 11400000, guid: 4165b2e36c177cc47969cd2b646704a6, type: 2}
+  generationProfile:
+    heightRangeMeters: {x: 24, y: 42}
+    trunkRadiusRangeMeters: {x: 0.25, y: 0.7}
+    crownRadiusRangeMeters: {x: 3.6, y: 7}
+    crownBaseHeightFraction: 0.15
+    crownHeightFraction: 0.82
+    crownShape: 1
+    branchCountRange: {x: 26, y: 38}
+    branchLengthScaleRange: {x: 0.88, y: 1.18}
+    branchRadiusScaleRange: {x: 0.09, y: 0.16}
+    branchPitchDegreesRange: {x: -48, y: -18}
+    trunkTopRadiusFraction: 0.07
+    branchTipRadiusFraction: 0.12
+    trunkBendStrength: 0.04
+    branchBendStrength: 0.26
+    foliageUnitsPerCubicMeterRange: {x: 180, y: 300}
+    foliageClusterCountRange: {x: 28, y: 46}
+    foliageClusterRadiusRangeMeters: {x: 0.4, y: 1}
+    radialSegments: 8
+    trunkSegments: 11
+    branchSegments: 5
+    foliageLongitudeSegments: 10
+    foliageLatitudeSegments: 6

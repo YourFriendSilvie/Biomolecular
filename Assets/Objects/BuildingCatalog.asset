@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ec4ed788b5ea3b469d2e63b8df45ecb, type: 3}
+  m_Name: BuildingCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingCatalog
+  buildings:
+  - prefab: {fileID: 3414679567393517766, guid: ca3baa4c984c83c40b79f1ad42f59d41, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 7471052750934201026, guid: ef520c9ea717e90469dc851783b9a4d4, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 2683559326828346362, guid: 3a3d267c9fbd453489c9af120b192d5c, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 4731654917598008649, guid: abb4b59aaad0d2940bc7b61d38e2d198, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 397390655741195577, guid: 4c3cf899700e20c4c9dd8b57ae3d6517, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 6339836798854645122, guid: 6db2179ab4259a24b815953d7eb9498b, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 7903653223328325679, guid: 3ad7181a420ca564fb26c106870a48ff, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 650004742665183643, guid: 7e5e68e2d25cd30439b52646e05eca25, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 2797451468222871336, guid: 00fdb9e3debe54c428e19a86a6aae146, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 8564848190624370152, guid: 95849b4de2c8ab144a522e59620965ab, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 4728080225371935355, guid: 1ce64d8f0d5b53d4fb1bc7b655ef88de, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 7587812806951657767, guid: 0d0423f63b1549d4bb63b0c75eba6fa2, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 6513074468585866068, guid: 8c9c10662002b0241a0bc75a51fc4fd4, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 3940226088450187398, guid: e541758d45301ed44bc64b848abd9ea8, type: 3}
+    icon: {fileID: 0}
+  - prefab: {fileID: 865640904141754247, guid: ac1e5bfbd88b9134e9f673da556f695d, type: 3}
+    icon: {fileID: 0}

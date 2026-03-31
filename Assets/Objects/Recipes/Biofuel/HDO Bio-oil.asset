@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 658b7a377327c9d4b8030b12bf0f6f1f, type: 3}
+  m_Name: HDO Bio-oil
+  m_EditorClassIdentifier: Assembly-CSharp::ProcessingRecipe
+  recipeName: "Hydrodeoxygenate Bio-oil \u2192 Biodiesel"
+  requiredMachine: 10
+  inputs:
+  - resourceName: Bio-oil
+    requiredMassGrams: 100
+    consumedMassGrams: 100
+  - resourceName: Water
+    requiredMassGrams: 30
+    consumedMassGrams: 30
+  outputs:
+  - composition: {fileID: 11400000, guid: f92eb108a2ce67f4499c2a53773fe8d8, type: 2}
+    massGrams: 75
+    yieldFraction: 1
+  processingTimeSeconds: 90
+  requiredWatts: 1200

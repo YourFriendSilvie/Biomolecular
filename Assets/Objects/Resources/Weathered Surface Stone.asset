@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9849a2a03987f374ba5b361428d637de, type: 3}
+  m_Name: Weathered Surface Stone
+  m_EditorClassIdentifier: Assembly-CSharp::CompositionInfo
+  itemName: Weathered Surface Stone
+  texture: {fileID: 0}
+  composition:
+  - resource: Silicon Dioxide
+    percentage: 58
+    useRandomRange: 0
+    minPercentage: 52
+    maxPercentage: 64
+  - resource: Aluminum Oxide
+    percentage: 15
+    useRandomRange: 0
+    minPercentage: 11
+    maxPercentage: 19
+  - resource: Iron Oxide
+    percentage: 8
+    useRandomRange: 0
+    minPercentage: 5
+    maxPercentage: 11
+  - resource: Water
+    percentage: 6
+    useRandomRange: 0
+    minPercentage: 3
+    maxPercentage: 9
+  - resource: Calcium Carbonate
+    percentage: 4
+    useRandomRange: 0
+    minPercentage: 2
+    maxPercentage: 6
+  - resource: Potassium Oxide
+    percentage: 5
+    useRandomRange: 0
+    minPercentage: 3
+    maxPercentage: 7
+  - resource: Magnesium Oxide
+    percentage: 4
+    useRandomRange: 0
+    minPercentage: 2
+    maxPercentage: 6

@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9849a2a03987f374ba5b361428d637de, type: 3}
+  m_Name: Clay Deposit
+  m_EditorClassIdentifier: Assembly-CSharp::CompositionInfo
+  itemName: Clay Deposit
+  texture: {fileID: 0}
+  composition:
+  - resource: Water
+    percentage: 22
+    useRandomRange: 0
+    minPercentage: 16
+    maxPercentage: 28
+  - resource: Aluminum Oxide
+    percentage: 26
+    useRandomRange: 0
+    minPercentage: 20
+    maxPercentage: 32
+  - resource: Silicon Dioxide
+    percentage: 34
+    useRandomRange: 0
+    minPercentage: 28
+    maxPercentage: 40
+  - resource: Iron Oxide
+    percentage: 6
+    useRandomRange: 0
+    minPercentage: 3
+    maxPercentage: 9
+  - resource: Potassium Oxide
+    percentage: 4
+    useRandomRange: 0
+    minPercentage: 2
+    maxPercentage: 6
+  - resource: Magnesium Oxide
+    percentage: 3
+    useRandomRange: 0
+    minPercentage: 1
+    maxPercentage: 5
+  - resource: Calcium Carbonate
+    percentage: 5
+    useRandomRange: 0
+    minPercentage: 2
+    maxPercentage: 8

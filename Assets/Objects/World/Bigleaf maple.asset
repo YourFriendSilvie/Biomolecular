@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bb0c5008bea4ce9877b7860af58c279, type: 3}
+  m_Name: Bigleaf maple
+  m_EditorClassIdentifier: Assembly-CSharp::TreeSpeciesData
+  commonName: Bigleaf maple
+  scientificName: Acer macrophyllum
+  evergreen: 0
+  foliageUnitName: leaf
+  foliageRenderStyle: 2
+  foliageCardMaterial: {fileID: 2100000, guid: 40ec4007ee71424499d4f690100cff43, type: 2}
+  foliageElementLengthScale: 1
+  foliageElementWidthScale: 1
+  foliageCardPlaneCount: 1
+  trunkGreenDensityKgPerCubicMeter: 740
+  branchGreenDensityKgPerCubicMeter: 700
+  barkGreenDensityKgPerCubicMeter: 560
+  barkVolumeFraction: 0.09
+  trunkDryMassFraction: 0.6
+  branchDryMassFraction: 0.58
+  barkDryMassFraction: 0.56
+  foliageDryMassFraction: 0.34
+  foliageWetMassPerUnitGrams: 2.4
+  foliageWetBulkDensityKgPerCubicMeter: 1.2
+  fallbackBranchVolumeRatio: 0.33
+  woodyComposition: {fileID: 11400000, guid: 161c30ca679e62d49a51abfb20c2e6a6, type: 2}
+  foliageComposition: {fileID: 11400000, guid: ffb9e8aef77919641bd2afb60e021e2a, type: 2}
+  generationProfile:
+    heightRangeMeters: {x: 16, y: 28}
+    trunkRadiusRangeMeters: {x: 0.2, y: 0.45}
+    crownRadiusRangeMeters: {x: 5, y: 9}
+    crownBaseHeightFraction: 0.26
+    crownHeightFraction: 0.64
+    crownShape: 2
+    branchCountRange: {x: 16, y: 24}
+    branchLengthScaleRange: {x: 0.85, y: 1.15}
+    branchRadiusScaleRange: {x: 0.14, y: 0.24}
+    branchPitchDegreesRange: {x: 6, y: 34}
+    trunkTopRadiusFraction: 0.16
+    branchTipRadiusFraction: 0.18
+    trunkBendStrength: 0.07
+    branchBendStrength: 0.12
+    foliageUnitsPerCubicMeterRange: {x: 75, y: 140}
+    foliageClusterCountRange: {x: 18, y: 30}
+    foliageClusterRadiusRangeMeters: {x: 0.8, y: 1.7}
+    radialSegments: 8
+    trunkSegments: 9
+    branchSegments: 5
+    foliageLongitudeSegments: 10
+    foliageLatitudeSegments: 6

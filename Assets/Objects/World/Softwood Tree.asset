@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9849a2a03987f374ba5b361428d637de, type: 3}
+  m_Name: Softwood Tree
+  m_EditorClassIdentifier: Assembly-CSharp::CollectibleInfo
+  itemName: Softwood Tree
+  texture: {fileID: 2800000, guid: d1118dda59970a2449ee890fa247c4c5, type: 3}
+  composition:
+  - resource: Woody Matter (Softwood)
+    percentage: 93
+    useRandomRange: 1
+    minPercentage: 90
+    maxPercentage: 95
+  - resource: Foliage (Needles)
+    percentage: 7
+    useRandomRange: 1
+    minPercentage: 5
+    maxPercentage: 10
