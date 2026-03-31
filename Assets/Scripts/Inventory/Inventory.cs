@@ -2,6 +2,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
+/// <summary>
+/// MonoBehaviour that manages the player's item storage. Items are held in a fixed number of
+/// slots and will auto-stack when two <see cref="InventoryItem"/> entries share the same name
+/// and molecular composition. Compositions blend by mass-weighted average when stacking.
+/// Raises <see cref="OnInventoryChanged"/> whenever the contents change so UI can refresh.
+/// </summary>
 public class Inventory : MonoBehaviour
 {
     [Header("Inventory Settings")]
@@ -27,6 +33,11 @@ public class Inventory : MonoBehaviour
     /// <summary>
     /// Add an item to inventory with optional mass
     /// </summary>
+    /// <param name="compositionInfo">The composition asset that defines the item type.</param>
+    /// <param name="quantity">Number of units to add.</param>
+    /// <param name="mass">Total mass in grams. Pass <c>0</c> to use the default from <paramref name="compositionInfo"/>.</param>
+    /// <param name="effectiveComposition">Override composition list, or <c>null</c> to use the asset defaults.</param>
+    /// <returns><c>true</c> if all items were placed; <c>false</c> if the inventory was full.</returns>
     public bool AddItem(CompositionInfo compositionInfo, int quantity = 1, float mass = 0f, List<Composition> effectiveComposition = null)
     {
         if (compositionInfo == null)
@@ -41,6 +52,13 @@ public class Inventory : MonoBehaviour
         });
     }
 
+    /// <summary>
+    /// Adds a batch of items to the inventory in a single atomic operation.
+    /// All items are first simulated against a clone of the current slots; only if every item
+    /// fits is the real inventory updated, preventing partial additions.
+    /// </summary>
+    /// <param name="incomingItems">Items to add. Null entries and zero-quantity items are skipped.</param>
+    /// <returns><c>true</c> if all valid items were placed; <c>false</c> if any item could not fit.</returns>
     public bool AddItems(IEnumerable<InventoryItem> incomingItems)
     {
         if (incomingItems == null)
@@ -144,8 +162,12 @@ public class Inventory : MonoBehaviour
     }
 
     /// <summary>
-    /// Remove a specific quantity of an item
+    /// Remove a specific quantity of an item by its composition type.
+    /// The first matching slot is decremented; if its quantity reaches zero the slot is cleared.
     /// </summary>
+    /// <param name="compositionInfo">The composition asset identifying which item to remove.</param>
+    /// <param name="quantity">Number of units to remove.</param>
+    /// <returns><c>true</c> if the item was found and removed; <c>false</c> if no matching slot existed.</returns>
     public bool RemoveItem(CompositionInfo compositionInfo, int quantity = 1)
     {
         for (int i = 0; i < items.Count; i++)
@@ -169,8 +191,10 @@ public class Inventory : MonoBehaviour
     }
 
     /// <summary>
-    /// Remove item from a specific slot
+    /// Removes a quantity of the item in the given slot. Clears the slot when quantity reaches zero.
     /// </summary>
+    /// <param name="slotIndex">Zero-based slot index. Out-of-range indices are silently ignored.</param>
+    /// <param name="quantity">Number of units to remove.</param>
     public void RemoveItemAt(int slotIndex, int quantity = 1)
     {
         if (slotIndex < 0 || slotIndex >= items.Count)
@@ -190,8 +214,9 @@ public class Inventory : MonoBehaviour
     }
 
     /// <summary>
-    /// Get item at specific slot
+    /// Returns the <see cref="InventoryItem"/> in the given slot, or <c>null</c> if the slot is empty or out of range.
     /// </summary>
+    /// <param name="slotIndex">Zero-based slot index.</param>
     public InventoryItem GetItemAt(int slotIndex)
     {
         if (slotIndex < 0 || slotIndex >= items.Count)
@@ -201,8 +226,11 @@ public class Inventory : MonoBehaviour
     }
 
     /// <summary>
-    /// Check if inventory has a specific item
+    /// Returns <c>true</c> if the inventory contains at least <paramref name="requiredQuantity"/> units
+    /// of the specified composition type across all slots.
     /// </summary>
+    /// <param name="compositionInfo">The composition asset identifying which item to look for.</param>
+    /// <param name="requiredQuantity">Minimum total quantity required.</param>
     public bool HasItem(CompositionInfo compositionInfo, int requiredQuantity = 1)
     {
         int totalFound = 0;
@@ -221,8 +249,10 @@ public class Inventory : MonoBehaviour
     }
 
     /// <summary>
-    /// Get total quantity of a specific item across all slots
+    /// Returns the sum of all stacked quantities of the given composition type across every slot.
     /// </summary>
+    /// <param name="compositionInfo">The composition asset identifying which item to count.</param>
+    /// <returns>Total unit count, or <c>0</c> if the item is not in inventory.</returns>
     public int GetItemCount(CompositionInfo compositionInfo)
     {
         int total = 0;
@@ -239,8 +269,11 @@ public class Inventory : MonoBehaviour
     }
 
     /// <summary>
-    /// Get total amount of a specific molecular resource across entire inventory
+    /// Returns the total grams of a named molecular resource (e.g. <c>"Cellulose"</c>) held across
+    /// all inventory slots, computed from each item's composition percentages and mass.
     /// </summary>
+    /// <param name="resourceName">The molecule/resource name to sum, case-sensitive.</param>
+    /// <returns>Total mass in grams, or <c>0</c> if the resource is not present.</returns>
     public float GetTotalResourceAmount(string resourceName)
     {
         float total = 0f;
@@ -257,8 +290,13 @@ public class Inventory : MonoBehaviour
     }
 
     /// <summary>
-    /// Get all unique resources and their total amounts in inventory
+    /// Aggregates every molecular resource across all slots into a single dictionary of
+    /// resource name → total grams. Useful for crafting checks and UI summary panels.
     /// </summary>
+    /// <returns>
+    /// A dictionary mapping resource names to their combined mass in grams.
+    /// Only resources actually present in the inventory are included.
+    /// </returns>
     public Dictionary<string, float> GetAllResourceTotals()
     {
         Dictionary<string, float> resourceTotals = new Dictionary<string, float>();
@@ -283,8 +321,10 @@ public class Inventory : MonoBehaviour
     }
 
     /// <summary>
-    /// Swap items between two slots
+    /// Swaps the items between two inventory slots. Out-of-range indices are silently ignored.
     /// </summary>
+    /// <param name="slotA">Zero-based index of the first slot.</param>
+    /// <param name="slotB">Zero-based index of the second slot.</param>
     public void SwapItems(int slotA, int slotB)
     {
         if (slotA < 0 || slotA >= items.Count || slotB < 0 || slotB >= items.Count)
@@ -298,7 +338,7 @@ public class Inventory : MonoBehaviour
     }
 
     /// <summary>
-    /// Clear the entire inventory
+    /// Sets every slot to <c>null</c> and fires <see cref="OnInventoryChanged"/>.
     /// </summary>
     public void ClearInventory()
     {

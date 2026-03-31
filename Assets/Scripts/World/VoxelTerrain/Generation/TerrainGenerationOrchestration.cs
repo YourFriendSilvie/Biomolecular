@@ -5,8 +5,9 @@ using UnityEngine;
 
 public partial class ProceduralVoxelTerrain
 {
-    private void BeginTerrainGeneration(TerrainGenerationOperation operation, Action<bool> onComplete)
+private void BeginTerrainGeneration(TerrainGenerationOperation operation, Action<bool> onComplete)
     {
+
         ResetRuntimeStreamingStateForGeneration();
         surfaceHeightPrepassReady = false;
         activeTerrainGenerationOperation = operation;
@@ -17,7 +18,6 @@ public partial class ProceduralVoxelTerrain
             terrainGenerationCompletionCallbacks.Add(onComplete);
         }
     }
-
     private IEnumerator RunTerrainGenerationAsync(TerrainGenerationOperation operation)
     {
         while (activeTerrainGenerationOperation == operation && !operation.IsDone)
@@ -87,6 +87,7 @@ public partial class ProceduralVoxelTerrain
         }
 
         activeTerrainGenerationOperation = null;
+        operation?.Dispose();
 
         if (success)
         {
@@ -99,7 +100,8 @@ public partial class ProceduralVoxelTerrain
 
     private void CancelTerrainGenerationInternal(bool notifyCallbacks)
     {
-        bool hadActiveGeneration = activeTerrainGenerationOperation != null;
+        TerrainGenerationOperation operation = activeTerrainGenerationOperation;
+        bool hadActiveGeneration = operation != null;
 
         if (activeTerrainGenerationCoroutine != null)
         {
@@ -116,6 +118,7 @@ public partial class ProceduralVoxelTerrain
 #endif
 
         activeTerrainGenerationOperation = null;
+        operation?.Dispose();
 
         if (hadActiveGeneration)
         {
@@ -149,6 +152,12 @@ public partial class ProceduralVoxelTerrain
         }
     }
 
+    private void UploadTerrainProfileTextures()
+    {
+        // No-op: profile textures are retired. Terrain color is baked into vertex.color
+        // by ChunkMeshBuilder.ComputeVertexColors using columnProfilePrepass directly.
+    }
+
     private void LogGenerationTimingsSummary(TerrainGenerationOperation operation)
     {
         if (!logGenerationTimings || operation == null)
@@ -159,6 +168,85 @@ public partial class ProceduralVoxelTerrain
         Debug.Log(
             $"[{nameof(ProceduralVoxelTerrain)}:{name}] GenerateTerrain timings: prepass={operation.PrepassMilliseconds}ms, density={operation.DensityMilliseconds}ms, materials={operation.MaterialMilliseconds}ms, chunk-objects={operation.ChunkObjectMilliseconds}ms, meshing={operation.MeshMilliseconds}ms, total={operation.TotalMilliseconds}ms.",
             this);
+    }
+
+    private TerrainGenerationNumericConfig BuildTerrainGenerationNumericConfig()
+    {
+        return new TerrainGenerationNumericConfig
+        {
+            totalSamplesX = TotalSamplesX,
+            totalSamplesY = TotalSamplesY,
+            totalSamplesZ = TotalSamplesZ,
+            voxelSizeMeters = voxelSizeMeters,
+            baseSurfaceHeightMeters = baseSurfaceHeightMeters,
+            seaLevelMeters = seaLevelMeters,
+            surfaceNoiseScaleMeters = surfaceNoiseScaleMeters,
+            surfaceNoiseOctaves = surfaceNoiseOctaves,
+            surfaceNoisePersistence = surfaceNoisePersistence,
+            surfaceNoiseLacunarity = surfaceNoiseLacunarity,
+            surfaceAmplitudeMeters = surfaceAmplitudeMeters,
+            ridgeNoiseScaleMeters = ridgeNoiseScaleMeters,
+            ridgeAmplitudeMeters = ridgeAmplitudeMeters,
+            detailNoiseScaleMeters = detailNoiseScaleMeters,
+            detailAmplitudeMeters = detailAmplitudeMeters,
+            caveNoiseScaleMeters = caveNoiseScaleMeters,
+            caveNoiseThreshold = caveNoiseThreshold,
+            caveCarveStrengthMeters = caveCarveStrengthMeters,
+            caveStartDepthMeters = caveStartDepthMeters,
+            shapeAsIsland = shapeAsIsland,
+            islandCoreRadiusNormalized = islandCoreRadiusNormalized,
+            coastalShelfWidthNormalized = coastalShelfWidthNormalized,
+            islandShapeNoiseScale = islandShapeNoiseScale,
+            islandShapeNoiseStrength = islandShapeNoiseStrength,
+            beachHeightMeters = beachHeightMeters,
+            oceanFloorDepthMeters = oceanFloorDepthMeters,
+            oceanFloorVariationMeters = oceanFloorVariationMeters,
+            oceanFloorNoiseScaleMeters = oceanFloorNoiseScaleMeters,
+            materialBoundaryNoiseScale = materialBoundaryNoiseScale,
+            materialBoundaryNoiseAmplitude = materialBoundaryNoiseAmplitude,
+            materialBeachBoundaryNoiseAmplitude = materialBeachBoundaryNoiseAmplitude,
+            materialBeachBoundaryNoiseScale = materialBeachBoundaryNoiseScale,
+            totalWorldSize = TotalWorldSize,
+            domainWarpScaleMeters = domainWarpScaleMeters,
+            domainWarpStrengthMeters = domainWarpStrengthMeters,
+            mountainRidgeScaleMeters = mountainRidgeScaleMeters,
+            mountainRidgeAmplitudeMeters = mountainRidgeAmplitudeMeters,
+            mountainBaseHeightMeters = mountainBaseHeightMeters,
+            mountainBlendRangeMeters = mountainBlendRangeMeters
+        };
+    }
+
+    internal TerrainGenerationSettings BuildTerrainGenerationSettings()
+    {
+        return new TerrainGenerationSettings
+        {
+            totalWorldSize                  = TotalWorldSize,
+            voxelSizeMeters                 = voxelSizeMeters,
+            baseSurfaceHeightMeters         = baseSurfaceHeightMeters,
+            seaLevelMeters                  = seaLevelMeters,
+            surfaceNoiseScaleMeters         = surfaceNoiseScaleMeters,
+            surfaceNoiseOctaves             = surfaceNoiseOctaves,
+            surfaceNoisePersistence         = surfaceNoisePersistence,
+            surfaceNoiseLacunarity          = surfaceNoiseLacunarity,
+            surfaceAmplitudeMeters          = surfaceAmplitudeMeters,
+            ridgeNoiseScaleMeters           = ridgeNoiseScaleMeters,
+            ridgeAmplitudeMeters            = ridgeAmplitudeMeters,
+            detailNoiseScaleMeters          = detailNoiseScaleMeters,
+            detailAmplitudeMeters           = detailAmplitudeMeters,
+            caveNoiseScaleMeters            = caveNoiseScaleMeters,
+            caveNoiseThreshold              = caveNoiseThreshold,
+            caveCarveStrengthMeters         = caveCarveStrengthMeters,
+            caveStartDepthMeters            = caveStartDepthMeters,
+            shapeAsIsland                   = (byte)(shapeAsIsland ? 1 : 0),
+            islandCoreRadiusNormalized      = islandCoreRadiusNormalized,
+            coastalShelfWidthNormalized     = coastalShelfWidthNormalized,
+            islandShapeNoiseScale           = islandShapeNoiseScale,
+            islandShapeNoiseStrength        = islandShapeNoiseStrength,
+            beachHeightMeters               = beachHeightMeters,
+            oceanFloorDepthMeters           = oceanFloorDepthMeters,
+            oceanFloorVariationMeters       = oceanFloorVariationMeters,
+            oceanFloorNoiseScaleMeters      = oceanFloorNoiseScaleMeters
+        };
     }
 
     private void BuildTerrainPrepass(GenerationContext context)
@@ -295,32 +383,51 @@ public partial class ProceduralVoxelTerrain
 
     private float EvaluateSurfaceHeight(float localX, float localZ, GenerationContext context)
     {
+        // Domain warp: perturb XZ before fractal noise for organic, meander-free ridges.
+        float warpedX = localX;
+        float warpedZ = localZ;
+        if (domainWarpStrengthMeters > 0f && domainWarpScaleMeters > 0.0001f)
+        {
+            float wx = Mathf.PerlinNoise(
+                (localX + context.domainWarpOffsetX) / domainWarpScaleMeters,
+                (localZ + context.domainWarpOffsetZ) / domainWarpScaleMeters);
+            float wz = Mathf.PerlinNoise(
+                (localX + context.domainWarpOffsetX + 5.2f) / domainWarpScaleMeters,
+                (localZ + context.domainWarpOffsetZ + 1.3f) / domainWarpScaleMeters);
+            warpedX = localX + (wx * 2f - 1f) * domainWarpStrengthMeters;
+            warpedZ = localZ + (wz * 2f - 1f) * domainWarpStrengthMeters;
+        }
+
         float fractalNoise = VoxelTerrainGenerator.EvaluateFractalNoise(
-            (localX + context.surfaceOffsetX) / surfaceNoiseScaleMeters,
-            (localZ + context.surfaceOffsetZ) / surfaceNoiseScaleMeters,
+            (warpedX + context.surfaceOffsetX) / surfaceNoiseScaleMeters,
+            (warpedZ + context.surfaceOffsetZ) / surfaceNoiseScaleMeters,
             surfaceNoiseOctaves,
             surfaceNoisePersistence,
             surfaceNoiseLacunarity);
         float ridgeNoise = Mathf.PerlinNoise(
-            (localX + context.ridgeOffsetX) / ridgeNoiseScaleMeters,
-            (localZ + context.ridgeOffsetZ) / ridgeNoiseScaleMeters);
+            (warpedX + context.ridgeOffsetX) / ridgeNoiseScaleMeters,
+            (warpedZ + context.ridgeOffsetZ) / ridgeNoiseScaleMeters);
         ridgeNoise = 1f - Mathf.Abs((ridgeNoise * 2f) - 1f);
         ridgeNoise *= ridgeNoise;
         float detailNoise = Mathf.PerlinNoise(
-            (localX + context.detailOffsetX) / detailNoiseScaleMeters,
-            (localZ + context.detailOffsetZ) / detailNoiseScaleMeters);
+            (warpedX + context.detailOffsetX) / detailNoiseScaleMeters,
+            (warpedZ + context.detailOffsetZ) / detailNoiseScaleMeters);
         detailNoise = (detailNoise - 0.5f) * 2f;
 
         float landHeight = baseSurfaceHeightMeters
             + ((fractalNoise - 0.5f) * 2f * surfaceAmplitudeMeters)
             + (ridgeNoise * ridgeAmplitudeMeters)
             + (detailNoise * detailAmplitudeMeters);
+
+        float minLandHeight = seaLevelMeters + beachHeightMeters;
+        landHeight = Mathf.Max(landHeight, minLandHeight);
+
         if (!shapeAsIsland)
         {
             return Mathf.Clamp(landHeight, 0f, TotalWorldSize.y - voxelSizeMeters);
         }
 
-        float islandDistance = VoxelTerrainGenerator.EvaluateIslandDistanceNormalized(localX, localZ, TotalWorldSize);
+        float islandDistance = VoxelTerrainGenerator.EvaluateIslandDistanceShaped(localX, localZ, TotalWorldSize, islandShapeNoiseScale, islandShapeNoiseStrength, context.islandShapeOffsetX, context.islandShapeOffsetZ);
         float shoreBlendStart = islandCoreRadiusNormalized;
         float shelfBlend = VoxelTerrainGenerator.SmoothStep01((islandDistance - shoreBlendStart) / Mathf.Max(0.0001f, coastalShelfWidthNormalized));
         float shorelineTargetHeight = seaLevelMeters + beachHeightMeters;
@@ -347,8 +454,14 @@ public partial class ProceduralVoxelTerrain
         float normalizedHeight = TotalWorldSize.y <= 0.0001f ? 0f : Mathf.Clamp01(localY / TotalWorldSize.y);
         GenerationMaterialIndices indices = generationMaterialIndices;
 
-        float ironVeinNoise = VoxelTerrainGenerator.EvaluateMaterialNoise3D(localX, localY, localZ, context, 2917.5f, 22f);
-        float copperVeinNoise = VoxelTerrainGenerator.EvaluateMaterialNoise3D(localX, localY, localZ, context, 3301.9f, 26f);
+        // XZ-only noise: same value for all Y in a column, so horizon boundaries shift
+        // uniformly and can never bleed through each other.
+        float bj = materialBoundaryNoiseAmplitude > 0f
+            ? (VoxelTerrainGenerator.EvaluateMaterialNoise2D(
+                localX, localZ, context, 2573.1f, 1891.7f,
+                materialBoundaryNoiseScale) * 2f - 1f)
+              * materialBoundaryNoiseAmplitude
+            : 0f;
 
         if (columnProfile.isOceanFloor)
         {
@@ -356,7 +469,7 @@ public partial class ProceduralVoxelTerrain
 
             if (indices.basinGravelIndex >= 0 &&
                 columnProfile.oceanWaterDepth <= Mathf.Max(voxelSizeMeters * 1.15f, 1.15f) &&
-                depthBelowSurface <= Mathf.Max(voxelSizeMeters * 0.9f, 0.9f))
+                depthBelowSurface <= Mathf.Max(voxelSizeMeters * 0.9f, 0.9f) + bj)
             {
                 return (byte)indices.basinGravelIndex;
             }
@@ -365,14 +478,14 @@ public partial class ProceduralVoxelTerrain
                 depthBelowSurface <= Mathf.Lerp(
                     Mathf.Max(voxelSizeMeters * 1.2f, 1.2f),
                     Mathf.Max(voxelSizeMeters * 2.3f, 2.3f),
-                    shallowWaterBlend))
+                    shallowWaterBlend) + bj)
             {
                 return (byte)indices.basinSandIndex;
             }
 
             if (indices.clayDepositIndex >= 0 &&
                 columnProfile.oceanWaterDepth > Mathf.Max(voxelSizeMeters * 0.75f, 0.75f) &&
-                depthBelowSurface <= Mathf.Max(voxelSizeMeters * 3.6f, 3.6f))
+                depthBelowSurface <= Mathf.Max(voxelSizeMeters * 3.6f, 3.6f) + bj)
             {
                 return (byte)indices.clayDepositIndex;
             }
@@ -380,60 +493,63 @@ public partial class ProceduralVoxelTerrain
 
         if (columnProfile.isBeachLand)
         {
-            if (indices.basinSandIndex >= 0 && depthBelowSurface <= columnProfile.beachSandBoundary)
+            if (indices.basinSandIndex >= 0 && depthBelowSurface <= columnProfile.beachSandBoundary + bj)
             {
                 return (byte)indices.basinSandIndex;
             }
 
-            if (indices.basinGravelIndex >= 0 && depthBelowSurface <= columnProfile.beachGravelBoundary)
+            if (indices.basinGravelIndex >= 0 && depthBelowSurface <= columnProfile.beachGravelBoundary + bj)
             {
                 return (byte)indices.basinGravelIndex;
             }
         }
 
-        if (indices.organicLayerIndex >= 0 && depthBelowSurface <= columnProfile.organicThickness)
+        if (indices.organicLayerIndex >= 0 && depthBelowSurface <= columnProfile.organicThickness + bj)
         {
             return (byte)indices.organicLayerIndex;
         }
 
-        if (indices.topsoilIndex >= 0 && depthBelowSurface <= columnProfile.topsoilBoundary)
+        if (indices.topsoilIndex >= 0 && depthBelowSurface <= columnProfile.topsoilBoundary + bj)
         {
             return (byte)indices.topsoilIndex;
         }
 
-        if (indices.eluviationLayerIndex >= 0 && depthBelowSurface <= columnProfile.eluviationBoundary)
+        if (indices.eluviationLayerIndex >= 0 && depthBelowSurface <= columnProfile.eluviationBoundary + bj)
         {
             return (byte)indices.eluviationLayerIndex;
         }
 
-        if (indices.subsoilIndex >= 0 && depthBelowSurface <= columnProfile.subsoilBoundary)
+        if (indices.subsoilIndex >= 0 && depthBelowSurface <= columnProfile.subsoilBoundary + bj)
         {
             return (byte)indices.subsoilIndex;
         }
 
-        if (indices.parentMaterialIndex >= 0 && depthBelowSurface <= columnProfile.parentBoundary)
+        if (indices.parentMaterialIndex >= 0 && depthBelowSurface <= columnProfile.parentBoundary + bj)
         {
             return (byte)indices.parentMaterialIndex;
         }
 
         if (depthBelowSurface > 4f)
         {
+            float ironVeinNoise = VoxelTerrainGenerator.EvaluateMaterialNoise3D(localX, localY, localZ, context, 2917.5f, 22f);
+            float copperVeinNoise = VoxelTerrainGenerator.EvaluateMaterialNoise3D(localX, localY, localZ, context, 3301.9f, 26f);
+
             if (indices.ironVeinIndex >= 0 &&
-                depthBelowSurface <= 18f &&
+                depthBelowSurface <= 18f + bj &&
                 ironVeinNoise > 0.78f)
             {
                 return (byte)indices.ironVeinIndex;
             }
 
             if (indices.copperVeinIndex >= 0 &&
-                depthBelowSurface >= 8f &&
+                depthBelowSurface >= 8f + bj &&
                 copperVeinNoise > 0.81f)
             {
                 return (byte)indices.copperVeinIndex;
             }
         }
 
-        if (indices.weatheredStoneIndex >= 0 && depthBelowSurface <= columnProfile.weatheredBoundary)
+        if (indices.weatheredStoneIndex >= 0 && depthBelowSurface <= columnProfile.weatheredBoundary + bj)
         {
             return (byte)indices.weatheredStoneIndex;
         }
@@ -446,7 +562,7 @@ public partial class ProceduralVoxelTerrain
                 continue;
             }
 
-            if (depthBelowSurface < definition.depthRangeMeters.x || depthBelowSurface > definition.depthRangeMeters.y)
+            if (depthBelowSurface < definition.depthRangeMeters.x + bj || depthBelowSurface > definition.depthRangeMeters.y + bj)
             {
                 continue;
             }
@@ -485,7 +601,7 @@ public partial class ProceduralVoxelTerrain
         float normalizedSurfaceHeight = TotalWorldSize.y <= 0.0001f ? 0f : Mathf.Clamp01(surfaceHeight / TotalWorldSize.y);
         float uplandFactor = Mathf.Clamp01((normalizedSurfaceHeight - 0.18f) / 0.72f);
         float soilRetention = Mathf.Lerp(1.08f, 0.76f, uplandFactor);
-        float islandDistance = VoxelTerrainGenerator.EvaluateIslandDistanceNormalized(localX, localZ, TotalWorldSize);
+        float islandDistance = VoxelTerrainGenerator.EvaluateIslandDistanceShaped(localX, localZ, TotalWorldSize, islandShapeNoiseScale, islandShapeNoiseStrength, context.islandShapeOffsetX, context.islandShapeOffsetZ);
         float coastalRingStart = islandCoreRadiusNormalized - (coastalShelfWidthNormalized * 0.45f);
         float coastalRingBlend = shapeAsIsland
             ? VoxelTerrainGenerator.SmoothStep01((islandDistance - coastalRingStart) / Mathf.Max(0.0001f, coastalShelfWidthNormalized * 1.15f))
@@ -504,9 +620,13 @@ public partial class ProceduralVoxelTerrain
         float beachTransitionHeightRange = Mathf.Max(beachHeightMeters + (voxelSizeMeters * 2.6f), voxelSizeMeters * 3.8f);
         float beachHeightBlend = 1f - Mathf.Clamp01((surfaceHeight - seaLevelMeters) / beachTransitionHeightRange);
         float beachFactor = Mathf.Clamp01(coastalRingBlend * beachHeightBlend);
+        float beachBoundaryNoise = materialBeachBoundaryNoiseAmplitude > 0f
+            ? (VoxelTerrainGenerator.EvaluateMaterialNoise2D(localX, localZ, context, 3079.3f, 2417.8f, materialBeachBoundaryNoiseScale) * 2f - 1f)
+              * materialBeachBoundaryNoiseAmplitude
+            : 0f;
         bool isBeachLand = shapeAsIsland &&
                            !isOceanFloor &&
-                           beachFactor > 0.18f &&
+                           beachFactor + beachBoundaryNoise > 0.18f &&
                            surfaceHeight >= seaLevelMeters + (voxelSizeMeters * 0.08f);
         float coastalLandHeightRange = Mathf.Max(beachHeightMeters + (voxelSizeMeters * 4.5f), voxelSizeMeters * 5.5f);
         bool isCoastalLand = shapeAsIsland &&
@@ -555,6 +675,37 @@ public partial class ProceduralVoxelTerrain
             weatheredThickness = Mathf.Lerp(voxelSizeMeters * 4f, voxelSizeMeters * 7.4f, outcropNoise);
         }
 
+        // Prepass-aware slope: sample neighbouring surface heights so that basin walls
+        // and cliff edges (which are baked into surfaceHeightPrepass by this point) drive
+        // correct soil-erosion instead of reading the raw noise-only surface.
+        float dhSA = voxelSizeMeters;
+        float hPXA = SampleSurfaceHeightPrepass(localX + dhSA, localZ);
+        float hNXA = SampleSurfaceHeightPrepass(localX - dhSA, localZ);
+        float hPZA = SampleSurfaceHeightPrepass(localX, localZ + dhSA);
+        float hNZA = SampleSurfaceHeightPrepass(localX, localZ - dhSA);
+        float gxA = (hPXA - hNXA) / (2f * dhSA);
+        float gzA = (hPZA - hNZA) / (2f * dhSA);
+        float localSlopeFactor = Mathf.Clamp01(Mathf.Sqrt(gxA * gxA + gzA * gzA) / 2.0f);
+
+        // Lake-basin columns sit below sea level but are not ocean floor.
+        // Their quartic rim walls have high gradients that would otherwise strip all sediment,
+        // leaving bare bedrock at the waterline. Cap erosion so mud/sand/gravel can survive.
+        bool isLakeBasin = !isOceanFloor && surfaceHeight < seaLevelMeters - voxelSizeMeters * 0.5f;
+        if (isLakeBasin) localSlopeFactor = Mathf.Min(localSlopeFactor, 0.3f);
+
+        // Coastal cliffs (high slope + near ocean) lose ALL soil — bare rock only.
+        float coastalCliffFactorA = localSlopeFactor * Mathf.Clamp01(coastalRingBlend * 2f);
+        float effectiveSlopeFactorA = Mathf.Max(localSlopeFactor, coastalCliffFactorA);
+
+        float slopeErosionA  = 1f - effectiveSlopeFactorA * 0.99f;
+        float slopeSoilMultA = slopeErosionA * slopeErosionA;
+        organicThickness    *= slopeErosionA;
+        topsoilThickness    *= slopeSoilMultA;
+        eluviationThickness *= slopeSoilMultA;
+        subsoilThickness    *= slopeSoilMultA;
+        parentThickness     *= slopeSoilMultA;
+        weatheredThickness   = Mathf.Lerp(weatheredThickness, weatheredThickness * 2.2f, effectiveSlopeFactorA);
+
         if (isBeachLand)
         {
             beachSandThickness = Mathf.Max(
@@ -564,16 +715,55 @@ public partial class ProceduralVoxelTerrain
                 voxelSizeMeters * 0.65f,
                 Mathf.Lerp(voxelSizeMeters * 0.65f, voxelSizeMeters * 1.35f, beachFactor * 0.9f));
         }
+        else if (beachFactor > 0.05f)
+        {
+            // Compute boundaries for smooth color blending even below the isBeachLand threshold.
+            beachSandThickness = Mathf.Max(
+                voxelSizeMeters * 0.95f,
+                Mathf.Lerp(voxelSizeMeters * 0.95f, voxelSizeMeters * 1.45f, beachFactor));
+            beachGravelThickness = Mathf.Max(
+                voxelSizeMeters * 0.65f,
+                Mathf.Lerp(voxelSizeMeters * 0.65f, voxelSizeMeters * 1.35f, beachFactor * 0.9f));
+        }
+
+        // Beach, ocean-floor, and lake-basin columns never show the shader rock overlay.
+        // Zeroing here prevents high gradient slopeFactor from cliff neighbours bleeding in.
+        if (isBeachLand || isOceanFloor || isLakeBasin) localSlopeFactor = 0f;
+
+        // Continuous color factors: beach and ocean floor cross-fade smoothly at the shoreline.
+        float waterDepthFactor  = Mathf.Clamp01(oceanWaterDepth / (voxelSizeMeters * 2f));
+        float shallowFactor     = 1f - waterDepthFactor;
+        float colorBeachFactor  = shapeAsIsland
+            ? Mathf.Clamp01((beachFactor - 0.18f) / 0.62f) * shallowFactor
+            : 0f;
+        float colorOceanFactor  = shapeAsIsland
+            ? Mathf.Clamp01((coastalRingBlend - 0.18f) / 0.28f) * waterDepthFactor
+            : 0f;
 
         ColumnMaterialProfile profile = new ColumnMaterialProfile
         {
-            surfaceHeight = surfaceHeight,
-            beachSandBoundary = beachSandThickness,
+            surfaceHeight       = surfaceHeight,
+            beachSandBoundary   = beachSandThickness,
             beachGravelBoundary = beachSandThickness + beachGravelThickness,
-            organicThickness = organicThickness,
-            oceanWaterDepth = oceanWaterDepth,
-            isBeachLand = isBeachLand,
-            isOceanFloor = isOceanFloor
+            organicThickness    = organicThickness,
+            oceanWaterDepth     = oceanWaterDepth,
+            isBeachLand         = isBeachLand,
+            isOceanFloor        = isOceanFloor,
+            // Store raw continuous values for sub-voxel smooth shader thresholding.
+            // beachFactor = coastalRingBlend * beachHeightBlend (threshold at 0.18 = isBeachLand)
+            // oceanFactor = coastalRingBlend (threshold at 0.22 combined with oceanWaterDepth)
+            beachFactor         = beachFactor,
+            oceanFactor         = coastalRingBlend,
+            slopeFactor         = localSlopeFactor,
+            // Per-column boundary noise: same formula as DetermineCellMaterialIndex so visual
+            // and logical soil horizon boundaries are always co-located.
+            materialBoundaryNoise = materialBoundaryNoiseAmplitude > 0f
+                ? (VoxelTerrainGenerator.EvaluateMaterialNoise2D(
+                    localX, localZ, context,
+                    2573.1f, 1891.7f, // arbitrary offsets — decouple from other noise layers; changing breaks world
+                    materialBoundaryNoiseScale) * 2f - 1f)
+                  * materialBoundaryNoiseAmplitude
+                : 0f
         };
         profile.topsoilBoundary = profile.organicThickness + topsoilThickness;
         profile.eluviationBoundary = profile.topsoilBoundary + eluviationThickness;
@@ -586,6 +776,12 @@ public partial class ProceduralVoxelTerrain
     private bool ShouldUseAsyncTerrainGeneration()
     {
         return useAsyncBuildPipeline || IsRuntimeStreamingModeActive;
+    }
+
+    private bool ShouldUseParallelGenerationJobs()
+    {
+        return SystemInfo.processorCount > 1 &&
+               (long)TotalSamplesX * TotalSamplesY >= 8192L;
     }
 
     private void ResetRuntimeStreamingStateForGeneration()

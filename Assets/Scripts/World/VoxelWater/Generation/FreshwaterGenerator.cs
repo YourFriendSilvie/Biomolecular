@@ -9,11 +9,10 @@ internal sealed class FreshwaterGenerator
 
     // Pre-allocated buffers for PassesCachedFreshwaterBasinGuard – reused every call to
     // avoid per-attempt heap allocations.  MaxBasinGuardHalfCellCount drives the maximum
-    // grid dimension (halfCount*2+1)^2.  Keeping it at 18 (grid 37×37 = 1 369 cells) gives
-    // the same containment accuracy as the old cap of 32 (65×65 = 4 225 cells) because the
-    // cell size is now chosen relative to the evaluation radius, not the lake radius, so
-    // coarser cells still give the same physical coverage.
-    private const int MaxBasinGuardHalfCellCount = 18;
+    // grid dimension (halfCount*2+1)^2.  Keeping it at 12 (grid 25×25 = 625 cells) is a
+    // coarser but sufficient pre-filter: the cell size is chosen relative to the evaluation
+    // radius so physical coverage is maintained, and the full hydrology solve follows anyway.
+    private const int MaxBasinGuardHalfCellCount = 12;
     private const int MaxBasinGuardGridCount = MaxBasinGuardHalfCellCount * 2 + 1;
     private const int MaxBasinGuardTotalCellCount = MaxBasinGuardGridCount * MaxBasinGuardGridCount;
     private readonly float[] _basinGuardHeightBuffer = new float[MaxBasinGuardTotalCellCount];
@@ -423,6 +422,9 @@ internal sealed class FreshwaterGenerator
         return Mathf.Max(acceptanceProgress, attemptProgress);
     }
 
+    private static long TimestampToMs(long startTimestamp) =>
+        (System.Diagnostics.Stopwatch.GetTimestamp() - startTimestamp) * 1000L / System.Diagnostics.Stopwatch.Frequency;
+
     private bool TryInitializeLakeState(ProceduralVoxelTerrain terrain, GeneratedLake lake, float? maxCaptureRadiusOverride = null)
     {
         if (terrain == null || lake == null || hydrologySolver == null)
@@ -468,9 +470,13 @@ internal sealed class FreshwaterGenerator
         };
     }
 
+    // Flood-fills the carved basin to obtain surface vertices that match the actual carved shape.
+    // Must be called after CarveLake. Bypasses the touchesOpenBoundary rejection used for
+    // natural-basin placement — the carved bowl belongs to this lake regardless of whether the
+    // solver finds a fully enclosed surface at the terrain boundary.
+    // A tight captureRadius keeps the mesh clipped to the carved area.
     private bool TrySolveCarvedLakeLocally(
         ProceduralVoxelTerrain terrain,
-        GeneratedLake previewLake,
         Vector3 center,
         float radiusMeters,
         float surfaceY,
@@ -478,24 +484,36 @@ internal sealed class FreshwaterGenerator
         out GeneratedLake lake)
     {
         lake = null;
-        if (terrain == null || previewLake == null)
+        if (terrain == null || hydrologySolver == null)
         {
             return false;
         }
 
-        GeneratedLake carvedLakeSeed = CreateFreshwaterCandidateSeed(center, radiusMeters, surfaceY, isPond);
-        float localRefreshPadding = Mathf.Max(
-            terrain.VoxelSizeMeters * 2f,
-            radiusMeters * (isPond ? 0.18f : 0.24f),
-            lakeDynamicExpansionMeters * 0.5f);
-        float maxCaptureRadius = Mathf.Max(carvedLakeSeed.radius, previewLake.captureRadius + localRefreshPadding);
-        carvedLakeSeed.captureRadius = maxCaptureRadius;
-        if (!TryInitializeLakeState(terrain, carvedLakeSeed, maxCaptureRadius))
+        GeneratedLake seed = CreateFreshwaterCandidateSeed(center, radiusMeters, surfaceY, isPond);
+        float tightCaptureRadius = seed.radius + Mathf.Max(lakeDynamicExpansionMeters, terrain.VoxelSizeMeters * 2f);
+        seed.captureRadius = tightCaptureRadius;
+
+        if (!hydrologySolver.TryEvaluateLakeAtFixedSurfaceWithOverflowExpansion(
+                terrain, seed, surfaceY, null,
+                out LakeTerrainPatch terrainPatch, out LakeSolveResult solveResult,
+                tightCaptureRadius) ||
+            solveResult == null ||
+            solveResult.volumeCubicMeters <= minRenderableVolumeCubicMeters)
         {
             return false;
         }
 
-        lake = carvedLakeSeed;
+        seed.terrainPatch = terrainPatch;
+        hydrologySolver.ApplyLakeSolveResult(seed, solveResult);
+        TrimLakeCaptureRadiusToSolvedSurface(terrain, seed);
+        updateLakeInfluenceBounds?.Invoke(terrain, seed);
+
+        if (!WaterSpatialQueryUtility.IsLakeActive(seed, minRenderableVolumeCubicMeters))
+        {
+            return false;
+        }
+
+        lake = seed;
         return true;
     }
 
@@ -816,7 +834,8 @@ internal sealed class FreshwaterGenerator
         bool isPond)
     {
         string bodyType = isPond ? "ponds" : "lakes";
-        FreshwaterGenerationStats stats = new FreshwaterGenerationStats(isPond ? "Ponds" : "Lakes", targetCount, targetCount * (isPond ? 72 : 64));
+        int attemptsPerBody = isPond ? 32 : 56;
+        FreshwaterGenerationStats stats = new FreshwaterGenerationStats(isPond ? "Ponds" : "Lakes", targetCount, targetCount * attemptsPerBody);
         if (targetCount <= 0)
         {
             UpdateWaterGenerationProgress($"Generating {bodyType}", 1f, true);
@@ -839,7 +858,7 @@ internal sealed class FreshwaterGenerator
                 CalculateGenerationAttemptProgress(generatedCount, targetCount, attempts, maxAttempts),
                 false);
 
-            System.Diagnostics.Stopwatch candidateStopwatch = System.Diagnostics.Stopwatch.StartNew();
+            long phaseStart = System.Diagnostics.Stopwatch.GetTimestamp();
             float attemptProgress = maxAttempts <= 1 ? 1f : (attempts - 1f) / (maxAttempts - 1f);
             float candidateSurfaceFloor = Mathf.Lerp(
                 minimumCandidateSurfaceY,
@@ -851,15 +870,15 @@ internal sealed class FreshwaterGenerator
                 attemptProgress);
             float radius = NextFloat(random, radiusRangeMeters.x, radiusRangeMeters.y);
             float maxAllowedSlopeDegrees = Mathf.Lerp(isPond ? 24f : 20f, isPond ? 34f : 30f, attemptProgress);
-            float inlandSamplingMargin = Mathf.Lerp(isPond ? 0.24f : 0.22f, 0.18f, attemptProgress * 0.75f);
-            float minSampleX = bounds.min.x + (bounds.size.x * inlandSamplingMargin);
-            float maxSampleX = bounds.max.x - (bounds.size.x * inlandSamplingMargin);
-            float minSampleZ = bounds.min.z + (bounds.size.z * inlandSamplingMargin);
-            float maxSampleZ = bounds.max.z - (bounds.size.z * inlandSamplingMargin);
+            // Use absolute radius-based inland margin so large lakes can still find valid center positions.
+            float inlandAbsMargin = radius * Mathf.Lerp(isPond ? 1.1f : 1.2f, 0.9f, attemptProgress * 0.75f);
+            float minSampleX = bounds.min.x + inlandAbsMargin;
+            float maxSampleX = bounds.max.x - inlandAbsMargin;
+            float minSampleZ = bounds.min.z + inlandAbsMargin;
+            float maxSampleZ = bounds.max.z - inlandAbsMargin;
             if (maxSampleX <= minSampleX || maxSampleZ <= minSampleZ)
             {
-                candidateStopwatch.Stop();
-                stats.candidateAnalysisMilliseconds += candidateStopwatch.ElapsedMilliseconds;
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
                 stats.rejectedMissingSurface++;
                 continue;
             }
@@ -868,16 +887,14 @@ internal sealed class FreshwaterGenerator
             float worldZ = NextFloat(random, minSampleZ, maxSampleZ);
             if (!terrain.TryGetCachedSurfacePointWorld(worldX, worldZ, out Vector3 surfacePoint, out Vector3 surfaceNormal))
             {
-                candidateStopwatch.Stop();
-                stats.candidateAnalysisMilliseconds += candidateStopwatch.ElapsedMilliseconds;
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
                 stats.rejectedMissingSurface++;
                 continue;
             }
 
             if (surfacePoint.y <= candidateSurfaceFloor || surfacePoint.y >= candidateSurfaceCeiling)
             {
-                candidateStopwatch.Stop();
-                stats.candidateAnalysisMilliseconds += candidateStopwatch.ElapsedMilliseconds;
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
                 stats.rejectedElevation++;
                 continue;
             }
@@ -888,8 +905,7 @@ internal sealed class FreshwaterGenerator
                 : Vector3.Angle(surfaceNormal, Vector3.up);
             if (slope > maxAllowedSlopeDegrees)
             {
-                candidateStopwatch.Stop();
-                stats.candidateAnalysisMilliseconds += candidateStopwatch.ElapsedMilliseconds;
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
                 stats.rejectedSlope++;
                 continue;
             }
@@ -897,16 +913,14 @@ internal sealed class FreshwaterGenerator
             Vector3 center = surfacePoint;
             if (IsTooCloseToExistingWater(center, radius * (isPond ? 1.2f : 1.8f)))
             {
-                candidateStopwatch.Stop();
-                stats.candidateAnalysisMilliseconds += candidateStopwatch.ElapsedMilliseconds;
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
                 stats.rejectedSpacing++;
                 continue;
             }
 
             if (!TrySampleLakeShorelineStatsCached(terrain, center, radius, out float minimumShoreHeight, out float averageShoreHeight))
             {
-                candidateStopwatch.Stop();
-                stats.candidateAnalysisMilliseconds += candidateStopwatch.ElapsedMilliseconds;
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
                 stats.rejectedShoreline++;
                 continue;
             }
@@ -920,70 +934,122 @@ internal sealed class FreshwaterGenerator
             // shoreline points inside TryRefineLakeSurfaceYCached.
             if (!TryRefineLakeSurfaceYCached(terrain, center, radius, surfaceY, depthMeters, isPond, carveTerrainForWater, minimumShoreHeight, out surfaceY))
             {
-                candidateStopwatch.Stop();
-                stats.candidateAnalysisMilliseconds += candidateStopwatch.ElapsedMilliseconds;
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
                 stats.rejectedRefine++;
+                continue;
+            }
+
+            // Prevent beach placement: the carved basin floor must stay above sea level, and
+            // the terrain just outside the lake must not slope down to the ocean.
+            float basinFloorSafetyMargin = Mathf.Max(terrain.VoxelSizeMeters, 1.0f);
+            if (surfaceY - depthMeters < seaLevelMeters + basinFloorSafetyMargin)
+            {
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
+                stats.rejectedElevation++;
+                continue;
+            }
+
+            // Prevent cliffside placement: sample the rim just outside the carved radius and
+            // just inside it. A cliff within or at the basin edge would show up as a missing
+            // terrain hit or a height drop larger than the basin depth from the center height.
+            // Scale sample count with radius so large lakes get adequate coverage.
+            float centerHeight = surfacePoint.y;
+            float maxAllowedRimDrop = depthMeters * 1.25f + terrain.VoxelSizeMeters;
+            bool rimHasCliff = false;
+            int rimSampleCount = Mathf.Clamp(Mathf.RoundToInt(radius * 0.35f), 8, 24);
+            for (int rimSample = 0; rimSample < rimSampleCount && !rimHasCliff; rimSample++)
+            {
+                float angle = Mathf.PI * 2f * rimSample / rimSampleCount;
+                float cosA = Mathf.Cos(angle);
+                float sinA = Mathf.Sin(angle);
+                // Check just inside the carved radius (cliff within basin).
+                float innerX = center.x + cosA * (radius * 0.96f);
+                float innerZ = center.z + sinA * (radius * 0.96f);
+                if (!terrain.TryGetCachedSurfaceHeightWorld(innerX, innerZ, out float innerH) ||
+                    centerHeight - innerH > maxAllowedRimDrop)
+                {
+                    rimHasCliff = true;
+                    break;
+                }
+                // Check just outside (cliff right at the rim or terrain drops off immediately).
+                float outerX = center.x + cosA * (radius * 1.12f);
+                float outerZ = center.z + sinA * (radius * 1.12f);
+                if (!terrain.TryGetCachedSurfaceHeightWorld(outerX, outerZ, out float outerH) ||
+                    centerHeight - outerH > maxAllowedRimDrop)
+                {
+                    rimHasCliff = true;
+                }
+            }
+            if (rimHasCliff)
+            {
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
+                stats.rejectedSlope++;
+                continue;
+            }
+
+            float outerRingRadius = radius * 1.5f;
+            float outerRingMinHeight = seaLevelMeters + depthMeters * 0.4f;
+            bool touchesBeach = false;
+            int beachSampleCount = Mathf.Clamp(Mathf.RoundToInt(radius * 0.2f), 8, 16);
+            for (int beachSample = 0; beachSample < beachSampleCount && !touchesBeach; beachSample++)
+            {
+                float angle = Mathf.PI * 2f * beachSample / beachSampleCount;
+                float sx = center.x + Mathf.Cos(angle) * outerRingRadius;
+                float sz = center.z + Mathf.Sin(angle) * outerRingRadius;
+                if (terrain.TryGetCachedSurfacePointWorld(sx, sz, out Vector3 outerPoint, out _) &&
+                    outerPoint.y < outerRingMinHeight)
+                {
+                    touchesBeach = true;
+                }
+            }
+            if (touchesBeach)
+            {
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
+                stats.rejectedElevation++;
                 continue;
             }
 
             GeneratedLake candidateLake = CreateFreshwaterCandidateSeed(center, radius, surfaceY, isPond);
             if (!PassesCachedFreshwaterBasinGuard(terrain, candidateLake, depthMeters, carveTerrainForWater))
             {
-                candidateStopwatch.Stop();
-                stats.candidateAnalysisMilliseconds += candidateStopwatch.ElapsedMilliseconds;
+                stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
                 stats.rejectedCachedBasin++;
                 continue;
             }
 
-            candidateStopwatch.Stop();
-            stats.candidateAnalysisMilliseconds += candidateStopwatch.ElapsedMilliseconds;
+            stats.candidateAnalysisMilliseconds += TimestampToMs(phaseStart);
 
-            System.Diagnostics.Stopwatch previewSolveStopwatch = System.Diagnostics.Stopwatch.StartNew();
-            if (!TryCreateLakeAtSurface(terrain, candidateLake, out GeneratedLake generatedLake))
-            {
-                previewSolveStopwatch.Stop();
-                stats.previewSolveMilliseconds += previewSolveStopwatch.ElapsedMilliseconds;
-                stats.rejectedProfile++;
-                continue;
-            }
-
-            previewSolveStopwatch.Stop();
-            stats.previewSolveMilliseconds += previewSolveStopwatch.ElapsedMilliseconds;
-
+            GeneratedLake generatedLake;
             if (carveTerrainForWater)
             {
-                System.Diagnostics.Stopwatch carveStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                // Carve first, then flood-fill the actual carved basin for correct surface vertices.
+                phaseStart = System.Diagnostics.Stopwatch.GetTimestamp();
                 CarveLake(terrain, center, radius, surfaceY, depthMeters, isPond, false);
-                carveStopwatch.Stop();
-                stats.carveMilliseconds += carveStopwatch.ElapsedMilliseconds;
+                stats.carveMilliseconds += TimestampToMs(phaseStart);
 
-                System.Diagnostics.Stopwatch finalizeSolveStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                if (TrySolveCarvedLakeLocally(terrain, generatedLake, center, radius, surfaceY, isPond, out GeneratedLake carvedLake))
+                phaseStart = System.Diagnostics.Stopwatch.GetTimestamp();
+                if (!TrySolveCarvedLakeLocally(terrain, center, radius, surfaceY, isPond, out generatedLake))
                 {
-                    generatedLake = carvedLake;
+                    // Fallback: use a bare candidate seed so IsTooCloseToExistingWater still
+                    // blocks overlap on future attempts, even if no mesh can be built.
+                    generatedLake = CreateFreshwaterCandidateSeed(center, radius, surfaceY, isPond);
                 }
-                else
+                stats.finalizeSolveMilliseconds += TimestampToMs(phaseStart);
+
+                phaseStart = System.Diagnostics.Stopwatch.GetTimestamp();
+                PaintFreshwaterBasinMaterials(terrain, center, radius, surfaceY, depthMeters, isPond);
+                stats.basinMaterialMilliseconds += TimestampToMs(phaseStart);
+            }
+            else
+            {
+                phaseStart = System.Diagnostics.Stopwatch.GetTimestamp();
+                if (!TryCreateLakeAtSurface(terrain, candidateLake, out generatedLake))
                 {
-                    finalizeSolveStopwatch.Stop();
-                    stats.finalizeSolveMilliseconds += finalizeSolveStopwatch.ElapsedMilliseconds;
-
-                    System.Diagnostics.Stopwatch rollbackStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                    RestoreCarvedLake(terrain, center, radius, surfaceY, depthMeters, isPond);
-                    rollbackStopwatch.Stop();
-                    stats.rollbackMilliseconds += rollbackStopwatch.ElapsedMilliseconds;
-
-                    LogLakeDebug($"Rejected carved freshwater candidate after local refresh failed for {WaterDebugUtility.DescribeLake(candidateLake)}.");
+                    stats.previewSolveMilliseconds += TimestampToMs(phaseStart);
                     stats.rejectedProfile++;
                     continue;
                 }
-
-                finalizeSolveStopwatch.Stop();
-                stats.finalizeSolveMilliseconds += finalizeSolveStopwatch.ElapsedMilliseconds;
-
-                System.Diagnostics.Stopwatch basinMaterialStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                PaintFreshwaterBasinMaterials(terrain, center, radius, surfaceY, depthMeters, isPond);
-                basinMaterialStopwatch.Stop();
-                stats.basinMaterialMilliseconds += basinMaterialStopwatch.ElapsedMilliseconds;
+                stats.previewSolveMilliseconds += TimestampToMs(phaseStart);
             }
 
             generatedLakes.Add(generatedLake);
@@ -1577,11 +1643,6 @@ internal sealed class FreshwaterGenerator
     private void CarveLake(ProceduralVoxelTerrain terrain, Vector3 center, float radiusMeters, float surfaceY, float depthMeters, bool isPond, bool paintBasinMaterials = true)
     {
         WaterTerrainCarver.CarveLake(terrain, center, radiusMeters, surfaceY, depthMeters, isPond, paintBasinMaterials);
-    }
-
-    private void RestoreCarvedLake(ProceduralVoxelTerrain terrain, Vector3 center, float radiusMeters, float surfaceY, float depthMeters, bool isPond)
-    {
-        WaterTerrainCarver.RestoreCarvedLake(terrain, center, radiusMeters, surfaceY, depthMeters, isPond);
     }
 
     private void BuildMergeTestRidge(ProceduralVoxelTerrain terrain, Vector3 firstCenter, Vector3 secondCenter, float surfaceY, float shorelineGapMeters, float ridgeHeightMeters)

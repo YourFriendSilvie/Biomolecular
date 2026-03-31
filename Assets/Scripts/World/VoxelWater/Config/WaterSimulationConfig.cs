@@ -27,15 +27,15 @@ public sealed class WaterSimulationConfig : ScriptableObject
 
     [Header("Lakes")]
     [SerializeField]                    private bool    generateLakes              = true;
-    [SerializeField, Range(0, 4)]       private int     lakeCount                  = 2;
-    [SerializeField]                    private Vector2 lakeRadiusRangeMeters      = new Vector2(8f, 14f);
-    [SerializeField, Min(0.25f)]        private float   lakeDepthMeters            = 1.5f;
+    [SerializeField, Min(0f)]           private float   lakeDensityPer16x16Chunks  = 0.8f;
+    [SerializeField]                    private Vector2 lakeRadiusRangeMeters      = new Vector2(25f, 80f);
+    [SerializeField, Min(0.25f)]        private float   lakeDepthMeters            = 6f;
 
     [Header("Ponds")]
     [SerializeField]                    private bool    generatePonds              = true;
-    [SerializeField, Range(0, 6)]       private int     pondCount                  = 3;
-    [SerializeField]                    private Vector2 pondRadiusRangeMeters      = new Vector2(3.5f, 6.5f);
-    [SerializeField, Min(0.25f)]        private float   pondDepthMeters            = 0.75f;
+    [SerializeField, Min(0f)]           private float   pondDensityPer16x16Chunks  = 2.0f;
+    [SerializeField]                    private Vector2 pondRadiusRangeMeters      = new Vector2(8f, 20f);
+    [SerializeField, Min(0.25f)]        private float   pondDepthMeters            = 1.5f;
 
     [Header("Rivers")]
     [SerializeField]                    private bool    generateRivers             = false;
@@ -82,12 +82,12 @@ public sealed class WaterSimulationConfig : ScriptableObject
     public bool    GenerateFreshwater                   => generateFreshwater;
 
     public bool    GenerateLakes                        => generateLakes;
-    public int     LakeCount                            => lakeCount;
+    public float   LakeDensityPer16x16Chunks            => lakeDensityPer16x16Chunks;
     public Vector2 LakeRadiusRangeMeters                => lakeRadiusRangeMeters;
     public float   LakeDepthMeters                      => lakeDepthMeters;
 
     public bool    GeneratePonds                        => generatePonds;
-    public int     PondCount                            => pondCount;
+    public float   PondDensityPer16x16Chunks            => pondDensityPer16x16Chunks;
     public Vector2 PondRadiusRangeMeters                => pondRadiusRangeMeters;
     public float   PondDepthMeters                      => pondDepthMeters;
 
@@ -120,8 +120,8 @@ public sealed class WaterSimulationConfig : ScriptableObject
         oceanPaddingMeters         = Mathf.Max(1f,    oceanPaddingMeters);
         oceanDepthEquivalentMeters = Mathf.Max(0.1f,  oceanDepthEquivalentMeters);
 
-        lakeCount  = Mathf.Clamp(lakeCount,  0, 4);
-        pondCount  = Mathf.Clamp(pondCount,  0, 6);
+        lakeDensityPer16x16Chunks = Mathf.Max(0f, lakeDensityPer16x16Chunks);
+        pondDensityPer16x16Chunks = Mathf.Max(0f, pondDensityPer16x16Chunks);
         riverCount = Mathf.Clamp(riverCount, 0, 3);
 
         lakeRadiusRangeMeters = ClampRange(lakeRadiusRangeMeters, 1f);
@@ -164,12 +164,12 @@ public sealed class WaterSimulationConfig : ScriptableObject
         generatePonds      = true;
         generateRivers     = false;
 
-        lakeCount              = 2;
-        lakeRadiusRangeMeters  = new Vector2(8f, 14f);
-        lakeDepthMeters        = 1.5f;
-        pondCount              = 3;
-        pondRadiusRangeMeters  = new Vector2(3.5f, 6.5f);
-        pondDepthMeters        = 0.75f;
+        lakeDensityPer16x16Chunks  = 0.8f;
+        lakeRadiusRangeMeters      = new Vector2(25f, 80f);
+        lakeDepthMeters            = 6f;
+        pondDensityPer16x16Chunks  = 2.0f;
+        pondRadiusRangeMeters      = new Vector2(8f, 20f);
+        pondDepthMeters            = 1.5f;
         riverCount             = 0;
         riverWidthRangeMeters  = new Vector2(4f, 8f);
         riverDepthMeters       = 1.2f;

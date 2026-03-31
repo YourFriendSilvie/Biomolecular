@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 658b7a377327c9d4b8030b12bf0f6f1f, type: 3}
+  m_Name: Smelt Iron
+  m_EditorClassIdentifier: Assembly-CSharp::ProcessingRecipe
+  recipeName: Smelt Iron
+  requiredMachine: 4
+  inputs:
+  - resourceName: Iron Oxide
+    requiredMassGrams: 20
+    consumedMassGrams: 20
+  - resourceName: Carbon
+    requiredMassGrams: 8
+    consumedMassGrams: 8
+  outputs:
+  - composition: {fileID: 11400000, guid: ecc0bf5b58370d14e8189d13cf3383f2, type: 2}
+    massGrams: 12
+    yieldFraction: 1
+  processingTimeSeconds: 120
+  requiredWatts: 1000

@@ -48,6 +48,14 @@ public class PlayerInteraction : MonoBehaviour
 
     private void Update()
     {
+        // Suppress interaction while the building placement UI is active
+        if (BuildingSystem.Instance != null && BuildingSystem.Instance.InBuildMode)
+        {
+            currentTarget = null;
+            HideInteractionPrompt();
+            return;
+        }
+
         // Raycast to find harvestable objects
         CheckForInteractable();
 

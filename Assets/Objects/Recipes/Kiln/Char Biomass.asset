@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 658b7a377327c9d4b8030b12bf0f6f1f, type: 3}
+  m_Name: Char Biomass
+  m_EditorClassIdentifier: Assembly-CSharp::ProcessingRecipe
+  recipeName: "Char Biomass \u2192 Charcoal + Wood Spirit"
+  requiredMachine: 5
+  inputs:
+  - resourceName: Cellulose
+    requiredMassGrams: 50
+    consumedMassGrams: 70
+  - resourceName: Lignin
+    requiredMassGrams: 15
+    consumedMassGrams: 30
+  outputs:
+  - composition: {fileID: 11400000, guid: 34b3aa7d05d18914398feac3670ab66e, type: 2}
+    massGrams: 35
+    yieldFraction: 1
+  - composition: {fileID: 11400000, guid: d766de1cb6ce33d48982bf36af6e1b57, type: 2}
+    massGrams: 4
+    yieldFraction: 1
+  processingTimeSeconds: 90
+  requiredWatts: 500

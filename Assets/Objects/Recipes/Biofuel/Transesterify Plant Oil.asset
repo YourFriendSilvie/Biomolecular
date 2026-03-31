@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 658b7a377327c9d4b8030b12bf0f6f1f, type: 3}
+  m_Name: Transesterify Plant Oil
+  m_EditorClassIdentifier: Assembly-CSharp::ProcessingRecipe
+  recipeName: "Transesterify Plant Oil \u2192 Biodiesel"
+  requiredMachine: 12
+  inputs:
+  - resourceName: Lipid
+    requiredMassGrams: 100
+    consumedMassGrams: 100
+  - resourceName: Methanol
+    requiredMassGrams: 11
+    consumedMassGrams: 11
+  outputs:
+  - composition: {fileID: 11400000, guid: b66846682494b494b8b3db12c7f3a7fb, type: 2}
+    massGrams: 98
+    yieldFraction: 1
+  - composition: {fileID: 11400000, guid: 8658474d6e8be6743a71a79eb5d1613d, type: 2}
+    massGrams: 10
+    yieldFraction: 1
+  processingTimeSeconds: 60
+  requiredWatts: 300

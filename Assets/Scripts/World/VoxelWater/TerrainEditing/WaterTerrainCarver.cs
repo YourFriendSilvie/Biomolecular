@@ -75,47 +75,7 @@ public static class WaterTerrainCarver
             return;
         }
 
-        Vector3 basinCenter = new Vector3(center.x, surfaceY - (depthMeters * 0.58f), center.z);
-        float centerRadiusMultiplier = isPond ? 0.7f : 0.62f;
-        float centerDepthMultiplier = isPond ? 1.3f : 1.15f;
-        terrain.ApplyDensityBrushWorld(
-            basinCenter,
-            radiusMeters * centerRadiusMultiplier,
-            densitySign * depthMeters * centerDepthMultiplier,
-            false);
-
-        for (int i = 0; i < 8; i++)
-        {
-            float angleRadians = (Mathf.PI * 2f * i) / 8f;
-            Vector3 innerOffset = new Vector3(Mathf.Cos(angleRadians), 0f, Mathf.Sin(angleRadians)) * (radiusMeters * (isPond ? 0.28f : 0.34f));
-            terrain.ApplyDensityBrushWorld(
-                new Vector3(center.x + innerOffset.x, surfaceY - (depthMeters * (isPond ? 0.5f : 0.42f)), center.z + innerOffset.z),
-                radiusMeters * (isPond ? 0.28f : 0.34f),
-                densitySign * depthMeters * (isPond ? 0.82f : 0.7f),
-                false);
-        }
-
-        for (int i = 0; i < 12; i++)
-        {
-            float angleRadians = (Mathf.PI * 2f * i) / 12f;
-            Vector3 outerOffset = new Vector3(Mathf.Cos(angleRadians), 0f, Mathf.Sin(angleRadians)) * (radiusMeters * (isPond ? 0.68f : 0.72f));
-            terrain.ApplyDensityBrushWorld(
-                new Vector3(center.x + outerOffset.x, surfaceY - (depthMeters * (isPond ? 0.18f : 0.12f)), center.z + outerOffset.z),
-                radiusMeters * (isPond ? 0.16f : 0.18f),
-                densitySign * depthMeters * (isPond ? 0.32f : 0.26f),
-                false);
-        }
-
-        for (int i = 0; i < 16; i++)
-        {
-            float angleRadians = (Mathf.PI * 2f * i) / 16f;
-            Vector3 shorelineOffset = new Vector3(Mathf.Cos(angleRadians), 0f, Mathf.Sin(angleRadians)) * (radiusMeters * 0.86f);
-            terrain.ApplyDensityBrushWorld(
-                new Vector3(center.x + shorelineOffset.x, surfaceY - 0.08f, center.z + shorelineOffset.z),
-                radiusMeters * 0.12f,
-                densitySign * depthMeters * 0.18f,
-                false);
-        }
+        terrain.ApplyDensityXZCylinder(center, radiusMeters, surfaceY, depthMeters, densitySign);
     }
 
     public static void BuildMergeTestRidge(
@@ -224,89 +184,33 @@ public static class WaterTerrainCarver
         terrain.BeginBulkEdit();
         try
         {
-            int gravelIndex = ResolveTerrainMaterialIndex(terrain, "Basin Gravel");
-            int sandIndex = ResolveTerrainMaterialIndex(terrain, "Basin Sand");
-            int mudIndex = ResolveTerrainMaterialIndex(terrain, "Lake Mud", "Organic Layer");
-            int clayIndex = ResolveTerrainMaterialIndex(terrain, "Clay Deposit");
-            int organicIndex = ResolveTerrainMaterialIndex(terrain, "Organic Layer");
+            int gravelIndex  = ResolveTerrainMaterialIndex(terrain, "Basin Gravel");
+            int sandIndex    = ResolveTerrainMaterialIndex(terrain, "Basin Sand");
+            int mudIndex     = ResolveTerrainMaterialIndex(terrain, "Lake Mud", "Organic Layer");
+            int clayIndex    = ResolveTerrainMaterialIndex(terrain, "Clay Deposit");
 
-            if (sandIndex >= 0)
-            {
-                terrain.ApplyMaterialBrushWorld(
-                    new Vector3(center.x, surfaceY - (depthMeters * 0.52f), center.z),
-                    radiusMeters * (isPond ? 0.82f : 0.88f),
-                    Mathf.Max(depthMeters * 0.42f, terrain.VoxelSizeMeters * 0.8f),
-                    sandIndex,
-                    false);
-
-                int beachRingSamples = Mathf.Max(12, Mathf.CeilToInt(radiusMeters * 1.8f));
-                float beachRingDistance = radiusMeters * (isPond ? 0.94f : 0.98f);
-                for (int i = 0; i < beachRingSamples; i++)
-                {
-                    float angleRadians = (Mathf.PI * 2f * i) / beachRingSamples;
-                    Vector3 beachOffset = new Vector3(Mathf.Cos(angleRadians), 0f, Mathf.Sin(angleRadians)) * beachRingDistance;
-                    terrain.ApplyMaterialBrushWorld(
-                        new Vector3(center.x + beachOffset.x, surfaceY + (terrain.VoxelSizeMeters * 0.18f), center.z + beachOffset.z),
-                        radiusMeters * (isPond ? 0.05f : 0.06f),
-                        terrain.VoxelSizeMeters * 0.45f,
-                        sandIndex,
-                        false);
-                }
-            }
-
-            if (gravelIndex >= 0)
-            {
-                int ringSamples = Mathf.Max(10, Mathf.CeilToInt(radiusMeters * 1.6f));
-                float ringDistance = radiusMeters * (isPond ? 0.72f : 0.84f);
-                for (int i = 0; i < ringSamples; i++)
-                {
-                    float angleRadians = (Mathf.PI * 2f * i) / ringSamples;
-                    Vector3 ringOffset = new Vector3(Mathf.Cos(angleRadians), 0f, Mathf.Sin(angleRadians)) * ringDistance;
-                    terrain.ApplyMaterialBrushWorld(
-                        new Vector3(center.x + ringOffset.x, surfaceY - (depthMeters * 0.38f), center.z + ringOffset.z),
-                        radiusMeters * (isPond ? 0.09f : 0.12f),
-                        Mathf.Max(depthMeters * 0.22f, terrain.VoxelSizeMeters * 0.75f),
-                        gravelIndex,
-                        false);
-                }
-            }
-
-            if (mudIndex >= 0)
-            {
-                terrain.ApplyMaterialBrushWorld(
-                    new Vector3(center.x, surfaceY - (depthMeters * 0.7f), center.z),
-                    radiusMeters * (isPond ? 0.72f : 0.56f),
-                    Mathf.Max(depthMeters * 0.28f, terrain.VoxelSizeMeters * 0.8f),
-                    mudIndex,
-                    false);
-            }
-
-            if (clayIndex >= 0)
-            {
-                terrain.ApplyMaterialBrushWorld(
-                    new Vector3(center.x, surfaceY - (depthMeters * 0.86f), center.z),
-                    radiusMeters * (isPond ? 0.28f : 0.22f),
-                    Mathf.Max(depthMeters * 0.2f, terrain.VoxelSizeMeters * 0.75f),
-                    clayIndex,
-                    false);
-            }
-
-            if (isPond && organicIndex >= 0)
-            {
-                terrain.ApplyMaterialBrushWorld(
-                    new Vector3(center.x, surfaceY - (depthMeters * 0.26f), center.z),
-                    radiusMeters * 0.32f,
-                    Mathf.Max(depthMeters * 0.12f, terrain.VoxelSizeMeters * 0.6f),
-                    organicIndex,
-                    false);
-            }
+            // Paint every cell in the basin with its material determined by actual water depth
+            // (surfaceY - cellCenterY), matching the VoxelTerrain.shader basin stack exactly.
+            // This replaces the old XZ-radius cylinder approach which ignored cell height.
+            terrain.ApplyBasinMaterialsByDepth(
+                center, radiusMeters, surfaceY,
+                gravelIndex, sandIndex, mudIndex, clayIndex);
         }
         finally
         {
             terrain.EndBulkEdit();
         }
+
+        // Register this basin so RebuildLakeProfileData() can apply the correct lakeSurfaceY
+        // to all profile-texture columns (including wall cells) in one deferred pass after
+        // ALL lakes and ponds have been carved.
+        terrain.RegisterLakeBasin(center, radiusMeters, surfaceY);
     }
 
+    // Rivers paint cell materials for harvest accuracy but do NOT register a lake basin
+    // or update the profile texture.  River beds are shallow linear features; the shader
+    // renders them using the standard soil-horizon stack rather than the lake basin depth
+    // blend.  No lakeSurfaceY (tex0.b) update is needed here.
     public static void PaintRiverBedMaterials(
         ProceduralVoxelTerrain terrain,
         IReadOnlyList<Vector3> samples,

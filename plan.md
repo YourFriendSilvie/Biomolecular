@@ -238,6 +238,27 @@ That separation is especially important if the project later adopts article-insp
 - large-world optimization
 - balancing, onboarding, and UX refinement
 
+---
+
+## Recent engineering progress (2026-03-30)
+
+- Fixed main-thread Texture2D construction by deferring texture uploads and adding ApplyPendingCellMaterialDebugTextureIfNeeded.
+- Implemented per-column debug texture and a debug-flat vertex color mode to verify material/visual parity.
+- Reworked terrain normals to use full 3D central-difference gradient to correctly shade caves and overhangs.
+- Replaced shader white-noise with triplanar FBM; exposed rock colors to SRP-compatible CBUFFER.
+- Replaced blocking Parallel.For mesh builds with Task-based background work.
+- Computed per-chunk neighbor LOD masks and passed transitionMask into the mesher; added scaffolding to detect boundary cells that require Transvoxel transition-cell handling. (Current job falls back to the regular 3D tri-table until 2D transition tables are integrated.)
+
+## Immediate next tasks
+
+- cliff-smooth-blending: done — per-vertex slopeWeight packed into UV.w and shader blending implemented.
+- Dual-identity refactor: make mesher derive vertex colors directly from authoritative cellMaterialIndices (high priority).
+- lod-stitching: in_progress — neighbor LOD mask computation implemented and passed to mesher; next: integrate 2D Transvoxel transition tables and validate stitching across LOD boundaries (Phase 9).
+- Add shader debug visualizations (normals, N·L, albedo) to diagnose remaining lighting issues.
+- Verify ApplyPendingCellMaterialDebugTextureIfNeeded is called on all main-thread commit paths.
+- Run visual QA with Debug Flat Colors enabled and iterate until pixel-perfect match.
+
+
 ## Risks and scope controls
 
 - detailed chemistry can become unreadable if UI and progression are not carefully staged
@@ -248,13 +269,66 @@ That separation is especially important if the project later adopts article-insp
 
 ## Immediate planning priorities
 
-1. Lock the first biome and the first body archetype.
+1. Lock the first biome and the first body archetype. ✅ — Olympic Rainforest biome; one humanoid body archetype
 2. Define how much chemistry detail is visible to the player in the early game versus later progression.
-3. Design the first harvesting-to-processing-to-automation chain around the current composition system.
-4. Define the first-playable survival pressure loop.
+3. Design the first harvesting-to-processing-to-automation chain around the current composition system. ✅ — Biomass → fermentation vessel → biofuel
+4. Define the first-playable survival pressure loop. ✅ — Caloric intake + water hydration (water as a real consumed molecule)
 5. Decide the first build-mode / factory-planning UX target.
 6. Generalize the seasonal plant architecture so future fruiting species do not require bespoke harvest scripts every time.
 7. Keep plant generation modular enough that dynamic growth can be layered in later.
+
+## First playable build plan
+
+### Decisions locked
+
+- **Survival pressure:** caloric intake + hydration. Water is a real consumed molecule tracked through the composition system.
+- **Automation chain:** Biomass → fermentation vessel → biofuel (liquid fuel for crafting/machines).
+- **Milestone:** Synthesize a propellant precursor chemical (first step toward rocket fuel / ship construction).
+- **Character controller:** Custom modular controller, third-person. Designed for swappable body archetypes.
+- **Save/load:** In scope for first playable.
+
+### Work phases
+
+#### Phase B1 — Character & locomotion
+- Custom modular character controller (third-person)
+- Terrain-reactive: walk/run/jump/crouch, slope handling, water wading
+- Body component system: plug in metabolism, carrying capacity, limb data per archetype
+- Camera: third-person orbit, smooth terrain follow
+
+#### Phase B2 — Metabolism & survival pressure
+- `BodyMetabolism` component: caloric reserve, hydration reserve
+- Both tracked as mass (grams), not arbitrary bars
+- Caloric drain rate based on activity (rest/walk/run)
+- Hydration drain rate (constant + activity multiplier)
+- UI: simple HUD showing caloric and hydration state
+- Death/collapse state at depletion
+
+#### Phase B3 — Crafting system
+- Crafting table prefab (placeable world object)
+- `CraftingRecipe` ScriptableObject: input compositions → output composition
+- Composition-aware matching: recipes check what molecules are present, not just item names
+- UI: inspect inventory, drag to crafting table, see output preview
+
+#### Phase B4 — Automation chain (fermentation)
+- `FermentationVessel` machine: accepts biomass, water; produces biofuel over time
+- Machine component: input slot, output slot, progress timer, fuel requirement
+- Biofuel as a new CompositionInfo asset (ethanol + water + trace)
+- Simple machine placement UI
+
+#### Phase B5 — Progression milestone
+- Biofuel → chemical reduction recipe → propellant precursor compound
+- In-world log/journal entry unlocked on first synthesis
+- Simple objective tracker HUD element ("Ship Log: Stage 1 complete")
+
+#### Phase B6 — Save/load
+- `WorldSaveManager`: serialize terrain seed + edits, inventory, placed machines, player position/health
+- JSON or binary save file in `Application.persistentDataPath`
+- Auto-save on scene exit; manual save from pause menu
+
+#### Phase B7 — UI polish
+- Main HUD: health/energy bars, interaction prompt, objective tracker
+- Pause menu: save, load, quit
+- Inventory UI: already exists — wire to new systems
 
 ## Notes
 

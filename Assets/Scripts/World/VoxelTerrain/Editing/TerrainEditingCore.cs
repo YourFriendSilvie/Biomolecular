@@ -297,6 +297,82 @@ public partial class ProceduralVoxelTerrain
         return $"Excavate roughly {miningRadiusMeters:F1}m of terrain. Likely material: {materialName}.";
     }
 
+    // Carves (or restores) a smooth bowl-shaped cylinder defined by XZ radius.
+    // Uses SDF-style direct per-voxel density modification so the result is a
+    // perfectly circular pond — not the petal pattern produced by discrete spheres.
+    //   densitySign = -1f  → carve (reduce density / make air)
+    //   densitySign = +1f  → restore (increase density / make solid)
+    public bool ApplyDensityXZCylinder(
+        Vector3 worldCenter,
+        float radiusXZ,
+        float surfaceY,
+        float carveDepth,
+        float densitySign = -1f)
+    {
+        if (densitySamples == null) return false;
+
+        // Work in local space (identity transform assumed for terrain).
+        Vector3 localCenter = transform.InverseTransformPoint(new Vector3(worldCenter.x, surfaceY, worldCenter.z));
+
+        int xMin = Mathf.Clamp(Mathf.FloorToInt((localCenter.x - radiusXZ) / voxelSizeMeters) - 1, 0, TotalSamplesX - 1);
+        int xMax = Mathf.Clamp(Mathf.CeilToInt( (localCenter.x + radiusXZ) / voxelSizeMeters) + 1, 0, TotalSamplesX - 1);
+        int yMin = Mathf.Clamp(Mathf.FloorToInt((localCenter.y - carveDepth) / voxelSizeMeters) - 1, 0, TotalSamplesY - 1);
+        int yMax = Mathf.Clamp(Mathf.CeilToInt(  localCenter.y / voxelSizeMeters) + 1, 0, TotalSamplesY - 1);
+        int zMin = Mathf.Clamp(Mathf.FloorToInt((localCenter.z - radiusXZ) / voxelSizeMeters) - 1, 0, TotalSamplesZ - 1);
+        int zMax = Mathf.Clamp(Mathf.CeilToInt( (localCenter.z + radiusXZ) / voxelSizeMeters) + 1, 0, TotalSamplesZ - 1);
+
+        HashSet<Vector3Int> affectedChunks = new HashSet<Vector3Int>();
+        bool modified = false;
+
+        for (int z = zMin; z <= zMax; z++)
+        for (int y = yMin; y <= yMax; y++)
+        for (int x = xMin; x <= xMax; x++)
+        {
+            float wx = x * voxelSizeMeters;
+            float wy = y * voxelSizeMeters;
+            float wz = z * voxelSizeMeters;
+
+            float dxz = Mathf.Sqrt((wx - localCenter.x) * (wx - localCenter.x)
+                                 + (wz - localCenter.z) * (wz - localCenter.z));
+            if (dxz >= radiusXZ) continue;
+
+            // Radial smoothstep: 1 at centre, 0 at rim.
+            float rimT    = 1f - dxz / radiusXZ;
+            float smoothXZ = rimT * rimT * (3f - 2f * rimT);
+
+            // Bowl floor deepens toward centre.
+            float bowlFloor = localCenter.y - carveDepth * smoothXZ;
+            if (wy > localCenter.y + voxelSizeMeters) continue;
+            if (wy < bowlFloor  - voxelSizeMeters)   continue;
+
+            // Vertical smoothstep from surface to floor.
+            float yRange  = Mathf.Max(0.001f, localCenter.y - bowlFloor);
+            float yT      = Mathf.Clamp01((localCenter.y - wy) / yRange);
+            float smoothY = yT * yT * (3f - 2f * yT);
+
+            float delta = carveDepth * smoothXZ * smoothY;
+            if (delta < 0.01f) continue;
+
+            int idx = GetSampleIndex(x, y, z);
+            densitySamples[idx] += densitySign * delta;
+            modified = true;
+
+            int cx = Mathf.Clamp(x, 0, TotalCellsX - 1);
+            int cy = Mathf.Clamp(y, 0, TotalCellsY - 1);
+            int cz = Mathf.Clamp(z, 0, TotalCellsZ - 1);
+            affectedChunks.Add(GetChunkCoordinateForCell(cx, cy, cz));
+        }
+
+        if (!modified) return false;
+
+        if (IsBulkEditActive)
+            QueueBulkEditedChunks(affectedChunks);
+        else
+            foreach (Vector3Int c in affectedChunks) RebuildChunk(c);
+
+        return true;
+    }
+
     private bool TryGetExcavationBlockReason(Vector3 worldPoint, out string blockReason)
     {
         blockReason = string.Empty;
@@ -331,18 +407,26 @@ public partial class ProceduralVoxelTerrain
         return cellMaterialIndices[GetCellIndex(cellX, cellY, cellZ)];
     }
 
+    // Add these corners so the mining system knows how to check the 8 points of a voxel cell!
+    private static readonly Vector3Int[] CellCornerOffsets = new Vector3Int[]
+    {
+        new Vector3Int(0, 0, 0), new Vector3Int(1, 0, 0), new Vector3Int(1, 0, 1), new Vector3Int(0, 0, 1),
+        new Vector3Int(0, 1, 0), new Vector3Int(1, 1, 0), new Vector3Int(1, 1, 1), new Vector3Int(0, 1, 1)
+    };
+
     private bool IsCellSolid(int x, int y, int z)
     {
         float densitySum = 0f;
         for (int corner = 0; corner < 8; corner++)
         {
-            int sampleX = x + (int)ChunkMeshBuilder.CubeCornerOffsets[corner].x;
-            int sampleY = y + (int)ChunkMeshBuilder.CubeCornerOffsets[corner].y;
-            int sampleZ = z + (int)ChunkMeshBuilder.CubeCornerOffsets[corner].z;
+            int sampleX = x + CellCornerOffsets[corner].x;
+            int sampleY = y + CellCornerOffsets[corner].y;
+            int sampleZ = z + CellCornerOffsets[corner].z;
             densitySum += densitySamples[GetSampleIndex(sampleX, sampleY, sampleZ)];
         }
 
-        return (densitySum / 8f) > ChunkMeshBuilder.IsoLevel;
+        // 0f is our IsoLevel!
+        return (densitySum / 8f) > 0f; 
     }
 
     private bool SphereIntersectsCell(Vector3 localPoint, float radiusMeters, int cellX, int cellY, int cellZ)

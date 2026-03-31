@@ -1,0 +1,15 @@
+#pragma kernel CSMain
+#include "Assets/Shaders/FastNoiseLite/FastNoiseLite.hlsl"
+
+int seed;
+
+float noise(float2 worldPos, float amplitude, fnl_state props){
+    return fnlGetNoise2D(props, worldPos.x, worldPos.y) * amplitude;
+}
+
+PROPS_HERE
+float finalNoise(int3 pos){
+    FUNCTIONS_HERE
+    float value = DENSITY_FUNCTION_HERE
+    return value;
+}

@@ -59,14 +59,14 @@ internal static class SpatialPlacementSolver
         }
     }
 
-    internal static int CalculateAdaptiveMaxAttempts(TerrainScatterPrototype prototype, Bounds bounds)
+    internal static int CalculateAdaptiveMaxAttempts(TerrainScatterPrototype prototype, Bounds bounds, int resolvedSpawnCount = -1)
     {
         if (prototype == null)
         {
             return 0;
         }
 
-        int requestedCount = Mathf.Max(1, prototype.spawnCount);
+        int requestedCount = Mathf.Max(1, resolvedSpawnCount >= 0 ? resolvedSpawnCount : prototype.spawnCount);
         int baseAttemptBudget = requestedCount * Mathf.Max(1, prototype.maxPlacementAttemptsPerInstance);
         float heightAcceptance = Mathf.Max(0.1f, prototype.normalizedHeightRange.y - prototype.normalizedHeightRange.x);
         float slopeAcceptance = Mathf.Max(0.1f, (prototype.slopeDegreesRange.y - prototype.slopeDegreesRange.x) / 90f);

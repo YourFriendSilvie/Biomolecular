@@ -92,6 +92,12 @@ public class TreeSpeciesData : ScriptableObject
     public CompositionInfo woodyComposition;
     public CompositionInfo foliageComposition;
 
+    [Header("Seed / Cone Yield")]
+    [Tooltip("CompositionInfo for seeds or cones this tree produces. Leave null for no seed yield.")]
+    public CompositionInfo seedComposition;
+    [Tooltip("Wet mass of seeds/cones yielded when harvesting one tree, in grams. 0 = no seeds.")]
+    [Min(0f)] public float seedWetMassGramsPerTree = 0f;
+
     [Header("Generation Profile")]
     public TreeGenerationProfile generationProfile = new TreeGenerationProfile();
 

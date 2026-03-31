@@ -129,6 +129,17 @@ public static class TreeBiomassCalculator
             });
         }
 
+        float seedMass = speciesData.seedWetMassGramsPerTree * efficiency;
+        if (speciesData.seedComposition != null && seedMass > 0f)
+        {
+            yields.Add(new TreeHarvestYield
+            {
+                label = "Seeds",
+                compositionInfo = speciesData.seedComposition,
+                wetMassGrams = seedMass
+            });
+        }
+
         return yields;
     }
 

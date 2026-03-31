@@ -1,25 +1,21 @@
-﻿<Project>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- Generated file, do not modify, your changes will be overwritten (use AssetPostprocessor.OnGeneratedCSProject) -->
   <PropertyGroup>
-    <BaseIntermediateOutputPath>Temp\obj\$(MSBuildProjectName)</BaseIntermediateOutputPath>
-    <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
-    <OutputPath>Temp\bin\Debug\</OutputPath>
-  </PropertyGroup>
-  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
-  <ItemGroup>
-    <ProjectCapability Include="Unity" />
-    <ProjectCapability Include="EnableOnDemandExcludedFolderLoading" />
-  </ItemGroup>
-  <PropertyGroup>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <EnableDefaultItems>false</EnableDefaultItems>
     <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>10.0.20506</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
+    <ProjectGuid>{AF43EFA8-E69A-5E66-F578-BF7E9ECBAB9A}</ProjectGuid>
     <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Assembly-CSharp</AssemblyName>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
     <BaseDirectory>.</BaseDirectory>
   </PropertyGroup>
   <PropertyGroup>
@@ -27,90 +23,125 @@
     <DefineConstants>UNITY_6000_4_0;UNITY_6000_4;UNITY_6000;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_2017_1_OR_NEWER;UNITY_2017_2_OR_NEWER;UNITY_2017_3_OR_NEWER;UNITY_2017_4_OR_NEWER;UNITY_2018_1_OR_NEWER;UNITY_2018_2_OR_NEWER;UNITY_2018_3_OR_NEWER;UNITY_2018_4_OR_NEWER;UNITY_2019_1_OR_NEWER;UNITY_2019_2_OR_NEWER;UNITY_2019_3_OR_NEWER;UNITY_2019_4_OR_NEWER;UNITY_2020_1_OR_NEWER;UNITY_2020_2_OR_NEWER;UNITY_2020_3_OR_NEWER;UNITY_2021_1_OR_NEWER;UNITY_2021_2_OR_NEWER;UNITY_2021_3_OR_NEWER;UNITY_2022_1_OR_NEWER;UNITY_2022_2_OR_NEWER;UNITY_2022_3_OR_NEWER;UNITY_2023_1_OR_NEWER;UNITY_2023_2_OR_NEWER;UNITY_2023_3_OR_NEWER;UNITY_6000_0_OR_NEWER;UNITY_6000_1_OR_NEWER;UNITY_6000_2_OR_NEWER;UNITY_6000_3_OR_NEWER;UNITY_6000_4_OR_NEWER;PLATFORM_ARCH_64;UNITY_64;UNITY_INCLUDE_TESTS;ENABLE_AR;ENABLE_AUDIO;ENABLE_AUDIO_SCRIPTABLE_PIPELINE;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_EVENT_QUEUE;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_TEXTURE_STREAMING;ENABLE_VIRTUALTEXTURING;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_VR;ENABLE_WEBCAM;ENABLE_UNITYWEBREQUEST;ENABLE_WWW;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_SERVICES_USE_WEBREQUEST;ENABLE_UNITY_CONSENT;ENABLE_UNITY_CLOUD_IDENTIFIERS;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;ENABLE_CLOUD_SERVICES_NATIVE_CRASH_REPORTING;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_EDITOR_GAME_SERVICES;ENABLE_UNITY_GAME_SERVICES_ANALYTICS_SUPPORT;ENABLE_CLOUD_LICENSE;ENABLE_EDITOR_HUB_LICENSE;ENABLE_WEBSOCKET_CLIENT;ENABLE_GENERATE_NATIVE_PLUGINS_FOR_ASSEMBLIES_API;ENABLE_DIRECTOR_AUDIO;ENABLE_DIRECTOR_TEXTURE;ENABLE_MANAGED_JOBS;ENABLE_MANAGED_TRANSFORM_JOBS;ENABLE_MANAGED_ANIMATION_JOBS;ENABLE_MANAGED_AUDIO_JOBS;ENABLE_MANAGED_UNITYTLS;INCLUDE_DYNAMIC_GI;ENABLE_SCRIPTING_GC_WBARRIERS;PLATFORM_SUPPORTS_MONO;RENDER_SOFTWARE_CURSOR;ENABLE_MARSHALLING_TESTS;ENABLE_VIDEO;ENABLE_NAVIGATION_OFFMESHLINK_TO_NAVMESHLINK;ENABLE_ACCELERATOR_CLIENT_DEBUGGING;ENABLE_ACCESSIBILITY_SCREEN_READER;TEXTCORE_1_0_OR_NEWER;EDITOR_ONLY_NAVMESH_BUILDER_DEPRECATED;PLATFORM_STANDALONE_WIN;PLATFORM_STANDALONE;UNITY_STANDALONE_WIN;UNITY_STANDALONE;ENABLE_RUNTIME_GI;ENABLE_MOVIES;ENABLE_NETWORK;ENABLE_NVIDIA;ENABLE_AMD;ENABLE_CRUNCH_TEXTURE_COMPRESSION;ENABLE_CLOUD_SERVICES_ENGINE_DIAGNOSTICS;ENABLE_OUT_OF_PROCESS_CRASH_HANDLER;ENABLE_CLUSTER_SYNC;ENABLE_CLUSTERINPUT;PLATFORM_UPDATES_TIME_OUTSIDE_OF_PLAYER_LOOP;GFXDEVICE_WAITFOREVENT_MESSAGEPUMP;PLATFORM_USES_EXPLICIT_MEMORY_MANAGER_INITIALIZER;PLATFORM_SUPPORTS_WAIT_FOR_PRESENTATION;PLATFORM_SUPPORTS_SPLIT_GRAPHICS_JOBS;ENABLE_MONO;NET_STANDARD_2_0;NET_STANDARD;NET_STANDARD_2_1;NETSTANDARD;NETSTANDARD2_1;ENABLE_PROFILER;ENABLE_PROFILER_ASSISTANT_INTEGRATION;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_UNITY_COLLECTIONS_CHECKS;ENABLE_BURST_AOT;UNITY_TEAM_LICENSE;ENABLE_CUSTOM_RENDER_TEXTURE;ENABLE_DIRECTOR;ENABLE_LOCALIZATION;ENABLE_SPRITES;ENABLE_TERRAIN;ENABLE_TILEMAP;ENABLE_TIMELINE;ENABLE_INPUT_SYSTEM;TEXTCORE_FONT_ENGINE_1_5_OR_NEWER;TEXTCORE_TEXT_ENGINE_1_5_OR_NEWER;TEXTCORE_FONT_ENGINE_1_6_OR_NEWER;CSHARP_7_OR_LATER;CSHARP_7_3_OR_NEWER</DefineConstants>
     <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
   </PropertyGroup>
-  <PropertyGroup>
-    <NoStandardLibraries>true</NoStandardLibraries>
-    <NoStdLib>true</NoStdLib>
-    <NoConfig>true</NoConfig>
-    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
-    <MSBuildWarningsAsMessages>MSB3277</MSBuildWarningsAsMessages>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>Temp\bin\Debug\</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>Temp\bin\Release\</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
+    <NoConfig>true</NoConfig>
+    <NoStdLib>true</NoStdLib>
+    <AddAdditionalExplicitAssemblyReferences>false</AddAdditionalExplicitAssemblyReferences>
+    <ImplicitlyExpandNETStandardFacades>false</ImplicitlyExpandNETStandardFacades>
+    <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <UnityProjectGenerator>Package</UnityProjectGenerator>
     <UnityProjectGeneratorVersion>2.0.27</UnityProjectGeneratorVersion>
-    <UnityProjectGeneratorStyle>SDK</UnityProjectGeneratorStyle>
+    <UnityProjectGeneratorStyle>Legacy</UnityProjectGeneratorStyle>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>6000.4.0f1</UnityVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Analyzer Include="C:\Users\Silver\.vscode\extensions\visualstudiotoolsforunity.vstuc-1.2.1\Analyzers\Microsoft.Unity.Analyzers.dll" />
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.4.0f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.SourceGenerators.dll" />
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.4.0f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.Properties.SourceGenerator.dll" />
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.4.0f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\Inventory\TreeSpeciesData.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelScatter\Config\TerrainScatterPrototype.cs" />
     <Compile Include="Assets\Scripts\Inventory\InventorySlot.cs" />
     <Compile Include="Assets\Scripts\Inventory\CompositionInfo.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Config\WaterSimulationConfig.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelTerrain\Config\TerrainMaterialManager.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelTerrain\Config\VoxelTerrainMaterialDefinition.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelTerrain\Core\ChunkLifecycle.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelTerrain\Data\TerrainRegionSnapshot.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelTerrain\Data\VoxelDataStore.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelTerrain\Data\VoxelTerrainGeometryChangedEventArgs.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelTerrain\Editing\TerrainEditingCore.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelTerrain\Generation\EditorTerrainGenerationDriver.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelTerrain\Generation\TerrainGenerationOperation.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelTerrain\Generation\TerrainGenerationOrchestration.cs" />
     <Compile Include="Assets\Scripts\World\VoxelTerrain\Generation\VoxelTerrainGenerator.cs" />
     <Compile Include="Assets\Scripts\Inventory\Inventory.cs" />
-    <Compile Include="Assets\Scripts\World\ProceduralTerrainGenerator.cs" />
     <Compile Include="Assets\Scripts\Inventory\CompositionInfoRegistry.cs" />
     <Compile Include="Assets\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualTouchZone.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Interaction\WaterInteractionSystem.cs" />
     <Compile Include="Assets\Scripts\Inventory\ServiceberryShrubHarvestable.cs" />
     <Compile Include="Assets\Scripts\Helper\ProceduralPlantUtility.cs" />
-    <Compile Include="Assets\Scripts\World\ProceduralVoxelStartAreaSystem.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Power\SteamGenerator.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\Pyrolyzer.cs" />
     <Compile Include="Assets\Scripts\Inventory\InventoryUI.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Power\IPowerConsumer.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\GeneratedRiver.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Power\Battery.cs" />
+    <Compile Include="Assets\Scripts\Building\BuildingGhost.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Hydrology\LakeTriangleFilterJob.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Generation\TerrainGenerationMath.cs" />
     <Compile Include="Assets\Scripts\Inventory\InventoryItem.cs" />
-    <Compile Include="Assets\Scripts\World\ProceduralVoxelTerrainScatterer.cs" />
-    <Compile Include="Assets\Scripts\World\ProceduralVoxelTerrainChunk.cs" />
     <Compile Include="Assets\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualJoystick.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\LakePendingEdge.cs" />
     <Compile Include="Assets\Scripts\Inventory\ProceduralTreeHarvestable.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\MagneticSeparator.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelWater\ProceduralVoxelTerrainWaterSystem.cs" />
     <Compile Include="Assets\Scripts\World\VoxelScatter\Placement\SpatialPlacementSolver.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Rendering\WaterMeshGenerator.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Power\LiquidFuelGenerator.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\LakeSurfaceComponent.cs" />
+    <Compile Include="Assets\Scripts\Building\BuildModeController.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Generation\FreshwaterGenerator.cs" />
     <Compile Include="Assets\StarterAssets\Mobile\Scripts\VirtualInput.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Core\ChunkLifecycle.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Config\VoxelTerrainMaterialDefinition.cs" />
     <Compile Include="Assets\Scripts\Helper\ProceduralTreeMeshBuilder.cs" />
-    <Compile Include="Assets\Scripts\World\ProceduralVoxelTerrain.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\WaterGenerationTimingEntry.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Utilities\WaterSpatialQueryUtility.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Core\TerrainLODUtility.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Meshing\TransvoxelTables.cs" />
     <Compile Include="Assets\Scripts\World\VoxelTerrain\Meshing\ChunkMeshBuilder.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Core\MachineItemStorage.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\ProceduralVoxelTerrain.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelStartArea\Data\StartAreaCandidate.cs" />
     <Compile Include="Assets\Scripts\Inventory\ProceduralTreeGenerator.cs" />
     <Compile Include="Assets\StarterAssets\Mobile\Scripts\TouchscreenInput.cs" />
+    <Compile Include="Assets\Scripts\Character\CharacterActivity.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\Gasifier.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\TransesterificationUnit.cs" />
     <Compile Include="Assets\Scripts\Inventory\IRaycastHarvestableProvider.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\LakeTerrainTriangle.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Generation\EditorTerrainGenerationDriver.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Standalone\SurfaceNetsTerrain.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Utilities\WaterDebugUtility.cs" />
-    <Compile Include="Assets\Scripts\World\VoxelRaycastDebugTool.cs" />
-    <Compile Include="Assets\Scripts\World\ProceduralTerrainScatterer.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\LakeEdgeKey.cs" />
     <Compile Include="Assets\Scripts\Inventory\HarvestableObject.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Data\VoxelDataStore.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Rendering\WaterMaterialUtility.cs" />
     <Compile Include="Assets\StarterAssets\Mobile\Scripts\Utilities\MobileDisableAutoSwitchControls.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Generation\TerrainGenerationOperation.cs" />
+    <Compile Include="Assets\Scripts\Character\MetabolismHUD.cs" />
     <Compile Include="Assets\Scripts\World\VoxelScatter\Metrics\ScatterGenerationMetrics.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Generation\TerrainGenerationOrchestration.cs" />
     <Compile Include="Assets\StarterAssets\FirstPersonController\Scripts\FirstPersonController.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelStartArea\Generation\StartAreaGenerator.cs" />
+    <Compile Include="Assets\Scripts\Character\CharacterBody.cs" />
     <Compile Include="Assets\StarterAssets\ThirdPersonController\Scripts\ThirdPersonController.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Utilities\WaterMathUtility.cs" />
+    <Compile Include="Assets\Scripts\UI\BuildModeUI.cs" />
     <Compile Include="Assets\Scripts\Inventory\SeasonCalendar.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Generation\WaterUpdateTickManager.cs" />
-    <Compile Include="Assets\Scripts\World\ProceduralTerrainWaterSystem.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\ExtractionMachine.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Editing\VoxelRaycastDebugTool.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Power\IPowerProducer.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelScatter\Placement\ScatterPrototypePlacer.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Core\FuelCombustionValues.cs" />
     <Compile Include="Assets\Scripts\Helper\ProceduralRenderMaterialUtility.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelStartArea\ProceduralVoxelStartAreaSystem.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\BiomassFractionator.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Rendering\WaterRenderFactory.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Core\ProceduralVoxelTerrainChunk.cs" />
     <Compile Include="Assets\Scripts\Helper\TreeBiomassCalculator.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\FreshwaterGenerationStats.cs" />
     <Compile Include="Assets\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualButton.cs" />
@@ -119,26 +150,48 @@
     <Compile Include="Assets\Scripts\World\VoxelScatter\Config\OlympicRainforestPreset.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\GeneratedRiverSegment.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Hydrology\LakeHydrologySolver.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\ProcessingMachine.cs" />
     <Compile Include="Assets\Scripts\World\VoxelTerrain\Streaming\ChunkStreamingManager.cs" />
     <Compile Include="Assets\Scripts\Inventory\ProceduralTreeScatterVolume.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\LakeTriangleEdge.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\LakeSolveResult.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\GeneratedLake.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\VoxelTerrainSpatialUtilities.cs" />
     <Compile Include="Assets\Scripts\Inventory\ProceduralShrubGenerator.cs" />
+    <Compile Include="Assets\Scripts\UI\MachineInteractionUI.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\TerrainEditing\WaterTerrainCarver.cs" />
+    <Compile Include="Assets\Scripts\UI\HideOnBuildMode.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Data\TerrainRegionSnapshot.cs" />
     <Compile Include="Assets\Scripts\Helper\VolumeHelper.cs" />
     <Compile Include="Assets\Scripts\Inventory\IHarvestable.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\Smelter.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\Kiln.cs" />
+    <Compile Include="Assets\Scripts\Character\BodyMetabolism.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\LakeVertexKey.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\HDOReactor.cs" />
     <Compile Include="Assets\StarterAssets\Mobile\Scripts\CanvasInputs\UICanvasControllerInput.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\OreCrusher.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\MachineInteractionTrigger.cs" />
     <Compile Include="Assets\Scripts\Inventory\PlayerInteraction.cs" />
-    <Compile Include="Assets\Scripts\World\ProceduralTerrainMineralSystem.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Core\ProcessingRecipe.cs" />
+    <Compile Include="Assets\Scripts\Building\PlaceableBuilding.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\ManualCraftingTable.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelScatter\ProceduralVoxelTerrainScatterer.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\TerrainEditing\WaterDeformationUpdater.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Domain\LakeTriangleNeighbor.cs" />
+    <Compile Include="Assets\Scripts\Building\BuildingCatalog.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Power\PowerGrid.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\AcidHydrolysisReactor.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Config\TerrainMaterialManager.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Editing\TerrainEditingCore.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\ShipManualMachine.cs" />
     <Compile Include="Assets\StarterAssets\ThirdPersonController\Scripts\BasicRigidBodyPush.cs" />
     <Compile Include="Assets\Scripts\World\VoxelWater\Utilities\WaterGenerationProfiler.cs" />
+    <Compile Include="Assets\Scripts\World\VoxelTerrain\Data\VoxelTerrainGeometryChangedEventArgs.cs" />
+    <Compile Include="Assets\Scripts\Building\BuildingSystem.cs" />
     <Compile Include="Assets\Scripts\World\VoxelStartArea\Brushes\VoxelBrushUtility.cs" />
     <Compile Include="Assets\StarterAssets\InputSystem\StarterAssetsInputs.cs" />
-    <Compile Include="Assets\Scripts\World\ProceduralVoxelTerrainWaterSystem.cs" />
+    <Compile Include="Assets\Scripts\Crafting\Machines\FermentationVessel.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
@@ -149,6 +202,7 @@
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF SSD.shader" />
     <None Include="Assets\StarterAssets\Mobile\UI\ToucScreenInputStyle.uss" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Surface-Mobile.shader" />
+    <None Include="Assets\Shader\VoxelTerrainLit.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\SDFFunctions.hlsl" />
     <None Include="Assets\Shader\CustomLighting.hlsl" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Surface.shader" />
@@ -1418,10 +1472,6 @@
       <HintPath>Library\ScriptAssemblies\Unity.AssetManager.Upload.Editor.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Unity.VisualStudio.Editor">
-      <HintPath>Library\ScriptAssemblies\Unity.VisualStudio.Editor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
       <HintPath>Library\ScriptAssemblies\Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
       <Private>False</Private>
@@ -1576,16 +1626,18 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="Unity.VisualStudio.Editor.csproj">
+      <Project>{A24F1B05-9BFE-6DCC-3775-652C3E42C0AD}</Project>
+      <Name>Unity.VisualStudio.Editor</Name>
+    </ProjectReference>
   </ItemGroup>
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
-  <ItemGroup>
-    <ProjectCapability Remove="LaunchProfiles" />
-    <ProjectCapability Remove="SharedProjectReferences" />
-    <ProjectCapability Remove="ReferenceManagerSharedProjects" />
-    <ProjectCapability Remove="ReferenceManagerProjects" />
-    <ProjectCapability Remove="COMReferences" />
-    <ProjectCapability Remove="ReferenceManagerCOM" />
-    <ProjectCapability Remove="AssemblyReferences" />
-    <ProjectCapability Remove="ReferenceManagerAssemblies" />
-  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="GenerateTargetFrameworkMonikerAttribute" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
 </Project>
