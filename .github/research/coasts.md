@@ -138,5 +138,3 @@ Footnotes / sources
 
 
 ---
-
-File saved to: C:\Users\Silver\.copilot\session-state\27dcef79-0701-42a6-9528-7be26d3dc6d7\research\olympic-peninsula-s-western-coast-northern-coast-a.md

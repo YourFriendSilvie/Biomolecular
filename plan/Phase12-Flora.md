@@ -164,8 +164,8 @@
 - Add visual/unit tests for micro-flora and soil.
 
 **Files:**
-- Assets/Shaders/VoxelTerrainLit.shader
-- Assets/Scripts/World/VoxelTerrain/Biomes/SpatialPlacementSolver.cs
+- Assets/Shader/VoxelTerrainLit.shader
+- Assets/Scripts/World/VoxelScatter/Placement/SpatialPlacementSolver.cs
 - Assets/Tests/MicroFloraTests.cs
 
 ---
@@ -204,66 +204,6 @@
 - Implement driftwood scatter pass for beaches.
 - Render ferns using `Graphics.DrawMeshInstancedIndirect`.
 - Add visual/unit tests for coastal/understory features.
-
-**Files:**
-- Assets/Scripts/World/VoxelTerrain/Flora/TreeGenerator.cs
-- Assets/Scripts/World/VoxelTerrain/Flora/UnderstoryGenerator.cs
-- Assets/Tests/CoastalUnderstoryTests.cs
-
----
-
-## References
-- https://tympanus.net/codrops/2025/01/27/fractals-to-forests-creating-realistic-3d-trees-with-three-js/
-- https://caner-milko.github.io/posts/procedural-tree-generation/
-- https://github.com/caner-milko/TreeGen
-- Volume and mass are calculated for all tree segments.
-- Harvested trees break into physics-enabled logs with correct mass.
-
-**Tasks:**
-- Implement volume calculation (truncated cone) in `TreeGenerator.cs`.
-- Apply species density factors.
-- Add harvest logic and physics integration.
-- Add unit/physics tests for biomass and harvesting.
-
-**Files:**
-- Assets/Scripts/World/VoxelTerrain/Flora/TreeGenerator.cs
-- Assets/Tests/BiomassTests.cs
-
----
-
-## Phase 12D: Micro-Flora & Soil Integration
-**Goal:** Integrate moss, lichen, and soil visuals into terrain.
-
-**Acceptance Criteria:**
-- Moss/lichen appear on correct surfaces in the Hoh biome.
-- Soil color/texture matches biome and flora.
-
-**Tasks:**
-- Update `VoxelTerrainLit.shader` for moss/lichen blending.
-- Sync soil horizon with biome/placement data.
-- Add visual/unit tests for micro-flora and soil.
-
-**Files:**
-- Assets/Shaders/VoxelTerrainLit.shader
-- Assets/Scripts/World/VoxelTerrain/Biomes/SpatialPlacementSolver.cs
-- Assets/Tests/MicroFloraTests.cs
-
----
-
-## Phase 12E: Coastal Forest Dynamics & Understory Instancing
-**Goal:** Simulate coastal stressors and render dense understory efficiently.
-
-**Acceptance Criteria:**
-- Wind-flagged trees and driftwood appear in coastal biomes.
-- Ferns/understory are GPU-instanced with correct placement.
-
-**Tasks:**
-- Inject global wind vector into tree generation for coastal biomes.
-- Implement driftwood scatter pass for beaches.
-- Render ferns using `Graphics.DrawMeshInstancedIndirect`.
-- Add visual/unit tests for coastal/understory features.
-  - **Driftwood Graveyards**: Add a `DriftwoodScatterPass` targeting Coastal beaches (`elevation > highTideY` and `elevation < stormSurgeY`) to spawn massive, stripped log meshes.
-  - **GPU Instanced Ferns**: Render Tier 2 groundcover (Sword Ferns) using `Graphics.DrawMeshInstancedIndirect`. Place "Cross-Quads" using a shadow-mask compute buffer in the gaps between the apex trees.
 
 **Files:**
 - Assets/Scripts/World/VoxelTerrain/Flora/TreeGenerator.cs
