@@ -1,24 +1,6 @@
 # Phase 7: Advanced Mountain Sculpting
 
 **Status:** PENDING
-**Objective:** Add erosion-inspired mountain noise using gradient- and slope-aware transforms.
-
-## Acceptance criteria
-- Mountain ridges and valleys appear more natural than previous basic noise.
-- performance target: no more than 10% longer generation for same chunk volume.
-
-## Tasks
-- Implement `ApplyGradientDampening` in `TerrainGenerationMath.cs`.
-- Implement recursive domain warping with `OffsetCoord` function.
-- Add ridged multifractal peak layer for elevation > tree line.
-- Add slope-aware normal sharpening in `VoxelTerrainLit.shader`.
-
-## Files
-- `Assets/Scripts/World/VoxelTerrain/TerrainGenerationMath.cs`
-- `Assets/Scripts/World/VoxelTerrain/Meshing/VoxelTerrainLit.shader`
-## Phase 7: Advanced Mountain Sculpting
-
-**Status:** PENDING
 **Objective:** Implement non-linear noise transformations and gradient-aware dampening to simulate geological erosion and sharp structural ridges without the performance cost of a full hydraulic simulation.
 **Description** Phase 7 is where we move past basic noise and start using the advanced "Mathematical Chisels" we learned from Josh and Sebastian Lague.
 
@@ -53,3 +35,17 @@
 - **Implementation:**
   - Modify `VoxelTerrainLit.shader` to increase the **Normal Map Contribution** based on the `slopeFactor`.
   - **The Result:** Vertical basalt cliffs will show deep, shadowy cracks and textures, while flat mossy areas remain soft and smooth underfoot.
+
+---
+
+## Acceptance Criteria
+
+- Mountain ridges and valleys appear more natural than previous basic noise.
+- Performance target: no more than 10% longer generation for the same chunk volume.
+- Ridged peaks only appear above the configured treeline elevation (default ~1,800 m).
+
+## Files
+
+- `Assets/Scripts/World/VoxelTerrain/Generation/TerrainGenerationMath.cs`
+- `Assets/Scripts/World/VoxelTerrain/Generation/TerrainGenerationOperation.cs`
+- `Assets/Shader/VoxelTerrainLit.shader`

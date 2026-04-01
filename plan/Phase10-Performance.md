@@ -1,26 +1,13 @@
 # Phase 10: Performance & Visibility
 
 **Status:** PENDING
-**Objective:** Add dynamic chunk loading and culling for large-scale Olympics map.
+**Objective:** Implement dynamic chunk loading and culling to handle the massive scale of the Olympic Peninsula without overwhelming the CPU/GPU.
 
-## Acceptance criteria
-- prioritized chunk generation around player.
-- chunk scene built with < 16 static draw calls per 100 chunks.
-- occluded chunks removed before rendering.
+## Acceptance Criteria
 
-## Tasks
-- Implement spiral load queue in `ProceduralVoxelTerrain`.
-- Add horizon occlusion pass or CullingGroup integration.
-- Evaluate and tune chunk update budget per frame.
-
-## Files
-- `Assets/Scripts/World/VoxelTerrain/ProceduralVoxelTerrain.cs`
-- `Assets/Scripts/World/VoxelTerrain/Visibility/ChunkCuller.cs` (new) 
-
-## Phase 10: Performance & Visibility
-
-**Status**: PENDING
-**Objective**: Implement dynamic chunk loading and culling to handle the massive scale of the Olympic Peninsula without overwhelming the CPU/GPU.
+- Chunk generation is prioritized around the player in a radial outward spiral.
+- Chunk scene built with < 16 static draw calls per 100 chunks.
+- Occluded chunks are removed before rendering.
 
 ### Subphase 10A: Spiral Chunk Loading
 
@@ -31,3 +18,16 @@
 
 - **Algorithmic Goal**: Stop rendering chunks that are completely hidden behind the jagged Olympic mountains.
 - **Implementation**: Integrate a software occlusion culling pass or leverage Unity's advanced culling groups to disable `MeshRenderers` for chunks that are occluded by higher-elevation terrain in the foreground.
+
+---
+
+## Tasks
+
+- Implement spiral load queue in `ProceduralVoxelTerrain`.
+- Add horizon occlusion pass or CullingGroup integration.
+- Evaluate and tune chunk update budget per frame.
+
+## Files
+
+- `Assets/Scripts/World/VoxelTerrain/ProceduralVoxelTerrain.cs`
+- `Assets/Scripts/World/VoxelTerrain/Visibility/ChunkCuller.cs` (new)

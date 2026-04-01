@@ -1,27 +1,7 @@
 # Phase 11: Atmospheric & Environmental Persistence
 
 **Status:** PENDING
-**Objective:** Global weather/day-night + dynamic wetness/snow across biome/terrain.
-
-## Acceptance criteria
-- interactive rain triggers wetness map changes.
-- snow accumulates above configured elevation and fades on heating.
-- fog density follows biome and river basins.
-
-## Tasks
-- Implement global wetness uniform update for `VoxelTerrainLit.shader`.
-- Add snow overlay pass with `normalWS.y` slope condition.
-- Add volumetric fog density control through biome map.
-
-## Files
-- `Assets/Scripts/World/VoxelTerrain/Meshing/VoxelTerrainLit.shader`
-- `Assets/Scripts/World/VoxelTerrain/Environment/WeatherController.cs`
-- `Assets/Scripts/World/VoxelTerrain/Environment/MistZoneManager.cs`
-
-## Phase 11: Atmospheric & Environmental Persistence
-
-**Status**: PENDING
-**Objective**: Implement a global environment controller to synchronize weather, day/night cycles, and dynamic material properties (wetness, snow accumulation) across the voxel terrain.
+**Objective:** Implement a global environment controller to synchronize weather, day/night cycles, and dynamic material properties (wetness, snow accumulation) across the voxel terrain.
 
 ### Subphase 11A: Dynamic Surface Saturation (The Wetness Map)
 
@@ -45,3 +25,17 @@
 - **Implementation**:
   - Utilize the **Biome Map** from Phase 6 to drive a localized **Volumetric Fog Density**.
   - **The Result**: Thick, low-lying mist that hugs the Hoh River basins while the high peaks remain clear and sunny above the cloud line.
+
+---
+
+## Acceptance Criteria
+
+- Interactive rain triggers wetness map changes visible in the terrain shader.
+- Snow accumulates above the configured elevation threshold and fades on heating.
+- Fog density follows biome and river basin assignments from Phase 6.
+
+## Files
+
+- `Assets/Shader/VoxelTerrainLit.shader`
+- `Assets/Scripts/World/VoxelTerrain/Environment/WeatherController.cs` (new)
+- `Assets/Scripts/World/VoxelTerrain/Environment/MistZoneManager.cs` (new)

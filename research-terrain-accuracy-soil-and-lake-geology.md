@@ -85,7 +85,7 @@ The Olympic Peninsula's parent material is unusual — predominantly **marine ba
 
 ### What the Code Does
 
-From `VoxelTerrain.shader:SampleTerrainColor` and `TerrainGenerationOperation.cs:DetermineCellMaterialIndex`, the lake floor material is determined by water depth above the fragment:
+From `VoxelTerrainLit.shader` and `TerrainGenerationOperation.cs:DetermineCellMaterialIndex`, the lake floor material is determined by water depth above the fragment:
 
 ```
 depth < 0.9m  → Basin Gravel
@@ -244,4 +244,4 @@ The profile texture system (3 RGBA32F textures, one pixel per XZ column, sampled
 [^8]: [Wikipedia: Eluviation](https://en.wikipedia.org/wiki/Eluviation) — E horizon light gray, clay-depleted, high silt/sand from quartz; formed under moist, cool, acidic conditions typical of conifer/rainforest.
 [^9]: `Assets/Scripts/World/VoxelTerrain/Generation/TerrainGenerationMath.cs` — `BuildColumnMaterialProfile()`: complete soil profile implementation with noise-driven thickness variation.
 [^10]: `Assets/Scripts/World/VoxelTerrain/Generation/TerrainGenerationOperation.cs:57–183` — `DetermineCellMaterialIndex()`: cell material assignment using depth-below-surface for soil layers; depth-below-water for basin materials.
-[^11]: `Assets/Shader/VoxelTerrain.shader:SampleTerrainColor()` — Shader basin stack: `bd < 0.9 → Gravel, bd < 2.5 → Sand, bd < 4.5 → Mud, else Clay`.
+[^11]: `Assets/Shader/VoxelTerrainLit.shader` — Shader basin stack: `bd < 0.9 → Gravel, bd < 2.5 → Sand, bd < 4.5 → Mud, else Clay`.

@@ -1,28 +1,7 @@
 # Phase 8: Glacial & Rainforest Hydrology
 
 **Status:** PENDING
-**Objective:** Upgrade water system to support biome-specific shoreline shapes and depth-aware sediment distribution.
-
-## Acceptance criteria
-- Lake basins follow alpine vs rainforest style.
-- depth-aware material splatting is validated in unit tests (0-1-2.5m bands).
-- halo seams at water edges are eliminated.
-
-## Tasks
-- Implement `WaterTerrainCarver` modes for alpine and rainforest.
-- Integrate vertical lake sediment layering into `DetermineCellMaterialIndex`.
-- Add saturated marsh zone override in `BuildColumnMaterialProfile`.
-- Add water shader depth gradient pass.
-
-## Files
-- `Assets/Scripts/World/VoxelTerrain/Water/WaterTerrainCarver.cs`
-- `Assets/Scripts/World/VoxelTerrain/Materials/WaterMaterialUtility.cs`
-- `Assets/Scripts/World/VoxelTerrain/Meshing/VoxelTerrainLit.shader`
-
-## Phase 8: Glacial & Rainforest Hydrology
-
-**Status**: PENDING
-**Objective**: Upgrade the current water system to support biome-specific basin shapes, organic shoreline silhouettes, and depth-aware sediment distribution that reflects the distinct character of Olympic alpine and rainforest lakes.
+**Objective:** Upgrade the current water system to support biome-specific basin shapes, organic shoreline silhouettes, and depth-aware sediment distribution that reflects the distinct character of Olympic alpine and rainforest lakes.
 
 ### Subphase 8A: Biome-Specific Basin Carving
 
@@ -56,3 +35,20 @@
 - **Implementation**:
   - Modify the water shader in `WaterMaterialUtility.cs` to implement a **Depth-Based Color Gradient**.
   - **The Palette**: Shift from clear teal in the shallows to a dense, milky emerald-green in the deeps to simulate suspended silicates.
+
+---
+
+## Acceptance Criteria
+
+- Alpine lake basins use the quartic-bowl profile; rainforest ponds use fractal rim noise for irregular shorelines.
+- Depth-aware material splatting is validated in unit tests covering the 0–1 m / 1–2.5 m / 2.5 m+ bands.
+- No halo seams appear at water edges in test scenes.
+- Marsh/saturated-muck override applies within the configured splash-zone radius around registered lake basins.
+
+## Files
+
+- `Assets/Scripts/World/VoxelWater/TerrainEditing/WaterTerrainCarver.cs`
+- `Assets/Scripts/World/VoxelWater/Rendering/WaterMaterialUtility.cs`
+- `Assets/Scripts/World/VoxelTerrain/Generation/TerrainGenerationOperation.cs`
+- `Assets/Scripts/World/VoxelTerrain/Generation/TerrainGenerationMath.cs`
+- `Assets/Shader/VoxelTerrainLit.shader`
