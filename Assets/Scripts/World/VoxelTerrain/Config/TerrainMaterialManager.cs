@@ -11,45 +11,8 @@ public partial class ProceduralVoxelTerrain
     [NonSerialized] internal GenerationContext lastGenerationContext;
     [NonSerialized] internal TerrainGenerationSettings lastGenerationSettings;
 
-    // Profile textures populated after generation; sampled per-pixel in VoxelTerrain.shader.
-    [NonSerialized] private Texture2D profileTex0;
-    [NonSerialized] private Texture2D profileTex1;
-    [NonSerialized] private Texture2D profileTex2;
-    // One texel per XZ sample: the colorTint of the topmost solid cell at that column.
-    [NonSerialized] private Texture2D cellMaterialDebugTex;
-    // Fourth profile texture: tex3.r = pre-baked basin noise offset per XZ column (metres).
-    // Noise formula lives only in C#; the shader reads the pre-baked value, no duplication.
-    [NonSerialized] private Texture2D profileTex3;
-    // CPU-accessible copy of the noise offsets, indexed [z * TotalSamplesX + x].
+    // CPU-accessible copy of the basin noise offsets, indexed [z * TotalSamplesX + x].
     [NonSerialized] internal float[] basinNoiseOffsets;
-
-    // Shader property IDs (cached to avoid string lookups every frame).
-    private static readonly int PropProfileTex0        = Shader.PropertyToID("_ProfileTex0");
-    private static readonly int PropProfileTex1        = Shader.PropertyToID("_ProfileTex1");
-    private static readonly int PropProfileTex2        = Shader.PropertyToID("_ProfileTex2");
-    private static readonly int PropTerrainOriginX    = Shader.PropertyToID("_TerrainOriginX");
-    private static readonly int PropTerrainOriginZ    = Shader.PropertyToID("_TerrainOriginZ");
-    private static readonly int PropTerrainWorldSizeX  = Shader.PropertyToID("_TerrainWorldSizeX");
-    private static readonly int PropTerrainWorldSizeZ  = Shader.PropertyToID("_TerrainWorldSizeZ");
-    private static readonly int PropBlendHalfWidth     = Shader.PropertyToID("_BlendHalfWidth");
-    private static readonly int PropDebugFlat          = Shader.PropertyToID("_DebugFlat");
-    private static readonly int PropMatOrganic         = Shader.PropertyToID("_MatColor_Organic");
-    private static readonly int PropMatTopsoil         = Shader.PropertyToID("_MatColor_Topsoil");
-    private static readonly int PropMatEluviation      = Shader.PropertyToID("_MatColor_Eluviation");
-    private static readonly int PropMatSubsoil         = Shader.PropertyToID("_MatColor_Subsoil");
-    private static readonly int PropMatParent          = Shader.PropertyToID("_MatColor_Parent");
-    private static readonly int PropMatWeathered       = Shader.PropertyToID("_MatColor_Weathered");
-    private static readonly int PropMatBedrock         = Shader.PropertyToID("_MatColor_Bedrock");
-    private static readonly int PropMatBasinSand       = Shader.PropertyToID("_MatColor_BasinSand");
-    private static readonly int PropMatBasinGravel     = Shader.PropertyToID("_MatColor_BasinGravel");
-    private static readonly int PropMatLakeMud         = Shader.PropertyToID("_MatColor_LakeMud");
-    private static readonly int PropMatClay            = Shader.PropertyToID("_MatColor_Clay");
-    private static readonly int PropCellMaterialDebugTex = Shader.PropertyToID("_CellMaterialDebugTex");
-    private static readonly int PropDebugCellMaterial    = Shader.PropertyToID("_DebugCellMaterial");
-    private static readonly int PropProfileTex3         = Shader.PropertyToID("_ProfileTex3");
-    private static readonly int PropBasinGravelDepth     = Shader.PropertyToID("_BasinGravelDepth");
-    private static readonly int PropBasinSandDepth       = Shader.PropertyToID("_BasinSandDepth");
-    private static readonly int PropBasinMudDepth        = Shader.PropertyToID("_BasinMudDepth");
 
     // Authoritative basin sediment depth thresholds: single source for both C# logic and
     // shader uniforms.  Changed here automatically propagates to both; no HLSL edit needed.
@@ -282,50 +245,6 @@ public partial class ProceduralVoxelTerrain
         // Profile textures are retired in the VoxelTerrainLit vertex-color shader.
     }
 
-    // ---- Basin sediment noise helpers (single source of truth) ----
-    // Smooth value noise on a 2D grid, range [0, 1].  Results are baked into profileTex3.r
-    // during UploadProfileTexturesToMaterial so that the shader never needs to implement
-    // this formula.  Changing the formula here automatically propagates everywhere.
-    private static float Hash2DBasin(float x, float z)
-    {
-        float v = Mathf.Sin(x * 127.1f + z * 311.7f) * 43758.5453f;
-        return v - Mathf.Floor(v);
-    }
-
-    private static float SmoothBasinNoise(float x, float z)
-    {
-        float ix = Mathf.Floor(x), fx = x - ix;
-        float iz = Mathf.Floor(z), fz = z - iz;
-        float ux = fx * fx * (3f - 2f * fx);
-        float uz = fz * fz * (3f - 2f * fz);
-        float n00 = Hash2DBasin(ix,      iz     );
-        float n10 = Hash2DBasin(ix + 1f, iz     );
-        float n01 = Hash2DBasin(ix,      iz + 1f);
-        float n11 = Hash2DBasin(ix + 1f, iz + 1f);
-        return Mathf.Lerp(Mathf.Lerp(n00, n10, ux), Mathf.Lerp(n01, n11, ux), uz);
-    }
-
-    // Build and upload three RGBA32F profile textures to the terrain material.
-    // Called once after terrain generation completes. The shader samples these
-    // textures per-pixel for sub-pixel smooth material transitions.
-    // RETIRED: profile textures are no longer used. Terrain color is now baked into
-    // vertex.color by ChunkMeshBuilder.ComputeVertexColors. This method is a no-op
-    // and its callers should be removed.
-    [System.Obsolete("Profile texture pipeline is retired. Terrain color is baked into vertex colors by ChunkMeshBuilder.")]
-    internal void UploadProfileTexturesToMaterial(
-        float[] surfaceHeightPrepass,
-        ColumnMaterialProfile[] columnProfilePrepass,
-        GenerationContext context,
-        TerrainGenerationSettings settings,
-        int totalSamplesX,
-        int totalSamplesZ)
-    {
-        // Profile textures are no longer used — terrain color is baked into vertex.color
-        // by ChunkMeshBuilder.ComputeVertexColors using the columnProfilePrepass directly.
-        // Keep the method signature so call-sites do not need to change.
-    }
-
-
     // Patches the columnProfilePrepass lakeSurfaceY for a single carved basin.
     // Used by runtime paths such as terrain deformation.
     internal void RefreshProfileTextureForWaterBody(
@@ -372,106 +291,81 @@ public partial class ProceduralVoxelTerrain
     internal string GetTerrainProfileDebugInfo_Internal(Vector3 worldPoint)
         => BuildTerrainProfileDebugString(worldPoint);
 
-    // Returns a multi-line debug string showing the raw profile texture values and
-    // computed shader state at the given world position.  Call this from the debug
-    // overlay tool to verify that shader behavior matches actual material assignment.
+    // Returns a multi-line debug string showing the column profile data at the given world position,
+    // reading directly from columnProfilePrepass (the vertex-color pipeline's single source of truth).
     internal string BuildTerrainProfileDebugString(Vector3 worldPoint)
     {
-        if (profileTex0 == null || profileTex1 == null || profileTex2 == null)
-            return "Profile textures not yet uploaded.";
+        if (columnProfilePrepass == null || columnProfilePrepass.Length == 0)
+            return "Column profile prepass not ready.";
         if (!surfaceHeightPrepassReady)
             return "Surface prepass not ready.";
 
-        Vector3 origin    = transform.position;
-        float worldSizeX  = (profileTex0.width  - 1) * lastGenerationSettings.voxelSizeMeters;
-        float worldSizeZ  = (profileTex0.height - 1) * lastGenerationSettings.voxelSizeMeters;
-        float u = (worldPoint.x - origin.x) / worldSizeX;
-        float v = (worldPoint.z - origin.z) / worldSizeZ;
-
-        // Bilinear sample each texture (match GPU behavior).
-        Color p0 = SampleBilinear(profileTex0, u, v);
-        Color p1 = SampleBilinear(profileTex1, u, v);
-        Color p2 = SampleBilinear(profileTex2, u, v);
-
-        float surfaceHeight     = p0.r;
-        float rawBeachFactor    = p0.g;
-        float lakeSurfaceY      = p0.b;
-        float oceanWaterDepth   = p0.a;
-
+        Vector3 origin = transform.position;
+        float localX = worldPoint.x - origin.x;
+        float localZ = worldPoint.z - origin.z;
         float localY = worldPoint.y - origin.y;
-        float lakeWaterDepth = (lakeSurfaceY > 0.001f) ? Mathf.Max(0f, lakeSurfaceY - localY) : 0f;
-        float effectiveWaterDepth = Mathf.Max(oceanWaterDepth, lakeWaterDepth);
 
-        float depth = surfaceHeight - localY;
+        int cellX = Mathf.Clamp(Mathf.FloorToInt(localX / voxelSizeMeters), 0, TotalCellsX - 1);
+        int cellZ = Mathf.Clamp(Mathf.FloorToInt(localZ / voxelSizeMeters), 0, TotalCellsZ - 1);
+        ColumnMaterialProfile profile = columnProfilePrepass[cellZ * TotalCellsX + cellX];
 
-        float beachBlend = Mathf.Clamp01(SmoothStep(0.12f, 0.18f, rawBeachFactor));
-        beachBlend      *= Mathf.Clamp01(1f - effectiveWaterDepth / 0.08f);
-        float basinBlend = Mathf.Clamp01(SmoothStep(0.0f, 0.08f, effectiveWaterDepth));
+        float depth = profile.surfaceHeight - localY;
+        float lakeWaterDepth = (profile.lakeSurfaceY > 0.001f) ? Mathf.Max(0f, profile.lakeSurfaceY - localY) : 0f;
+        float effectiveWaterDepth = Mathf.Max(profile.oceanWaterDepth, lakeWaterDepth);
 
-        // Dominant shader layer at this depth.
-        string shaderMaterial = "Bedrock";
-        if (basinBlend > 0.5f)
+        // Per-column boundary noise offset — same pre-baked value used by DetermineCellMaterialIndex.
+        float bj = profile.materialBoundaryNoise;
+
+        // Dominant layer — matches the decision tree in DetermineCellMaterialIndex,
+        // including boundary noise offset (bj) and slope/cliff overrides.
+        // Note: ore-vein detection requires 3D noise that is not pre-baked, so veins
+        // are not reported here; use the "Actual cellMaterial" line below for those.
+        string dominantLayer;
+        if (profile.isOceanFloor)
         {
-            // Basin stack (bottom-up): Clay base → Mud → Sand → Gravel (matches shader)
-            float bd = effectiveWaterDepth;
-            if (bd < 0.9f)       shaderMaterial = "Basin Gravel";
-            else if (bd < 2.5f)  shaderMaterial = "Basin Sand";
-            else if (bd < 4.5f)  shaderMaterial = "Lake Mud";
-            else                 shaderMaterial = "Clay Deposit";
+            float owd = profile.oceanWaterDepth;
+            if (owd < BasinGravelDepth)      dominantLayer = "Basin Gravel";
+            else if (owd < BasinSandDepth)   dominantLayer = "Basin Sand";
+            else if (owd < BasinMudDepth)    dominantLayer = "Lake Mud";
+            else                             dominantLayer = "Clay Deposit";
         }
-        else if (beachBlend > 0.5f)
-        {
-            shaderMaterial = depth < p2.b ? "Basin Sand (beach)" : "Basin Gravel (beach)";
-        }
+        else if (profile.isBeachLand && depth <= profile.beachSandBoundary + bj)   dominantLayer = "Beach Sand";
+        else if (profile.isBeachLand && depth <= profile.beachGravelBoundary + bj)  dominantLayer = "Beach Gravel";
         else
         {
-            if (depth < p1.r)                  shaderMaterial = "Organic Layer";
-            else if (depth < p1.g)             shaderMaterial = "Topsoil";
-            else if (depth < p1.b)             shaderMaterial = "Eluviation";
-            else if (depth < p1.a)             shaderMaterial = "Subsoil";
-            else if (depth < p2.r)             shaderMaterial = "Parent Material";
-            else if (depth < p2.g)             shaderMaterial = "Weathered Stone";
-            else                               shaderMaterial = "Bedrock";
+            float slopeF = profile.slopeFactor;
+            bool isVeryCliff     = slopeF >= 0.75f;
+            bool isModerateCliff = slopeF >= 0.5f && slopeF < 0.75f;
+
+            if (isVeryCliff && depth <= profile.weatheredBoundary + bj)
+            {
+                dominantLayer = "Weathered Stone";
+            }
+            else if (isModerateCliff &&
+                     (depth <= profile.organicThickness + bj || depth <= profile.topsoilBoundary + bj))
+            {
+                dominantLayer = "Weathered Stone";
+            }
+            else if (depth <= profile.organicThickness + bj)    dominantLayer = "Organic Layer";
+            else if (depth <= profile.topsoilBoundary + bj)     dominantLayer = "Topsoil";
+            else if (depth <= profile.eluviationBoundary + bj)  dominantLayer = "Eluviation";
+            else if (depth <= profile.subsoilBoundary + bj)     dominantLayer = "Subsoil";
+            else if (depth <= profile.parentBoundary + bj)      dominantLayer = "Parent Material";
+            else if (depth <= profile.weatheredBoundary + bj)   dominantLayer = "Weathered Stone";
+            else                                                 dominantLayer = "Bedrock";
         }
 
         return
             $"--- Terrain Profile Debug ---\n" +
             $"worldPos: ({worldPoint.x:F1}, {worldPoint.y:F1}, {worldPoint.z:F1})\n" +
-            $"profile UV: ({u:F3}, {v:F3})\n" +
-            $"surfaceHeight(local): {surfaceHeight:F2}  depth: {depth:F2}\n" +
-            $"rawBeachFactor: {rawBeachFactor:F3}  lakeSurfaceY: {lakeSurfaceY:F3}  lakeWaterDepth: {lakeWaterDepth:F3}\n" +
-            $"oceanWaterDepth: {oceanWaterDepth:F3}  effectiveWater: {effectiveWaterDepth:F3}\n" +
-            $"beachBlend: {beachBlend:F3}  basinBlend: {basinBlend:F3}\n" +
-            $"Shader shows: {shaderMaterial}\n" +
-            $"Soil boundaries (depth m): org={p1.r:F2} top={p1.g:F2} elu={p1.b:F2} sub={p1.a:F2}\n" +
-            $"  par={p2.r:F2} wth={p2.g:F2} bSand={p2.b:F2} bGrav={p2.a:F2}";
-    }
-
-    private static Color SampleBilinear(Texture2D tex, float u, float v)
-    {
-        float px = u * (tex.width  - 1);
-        float pz = v * (tex.height - 1);
-        int x0 = Mathf.Clamp(Mathf.FloorToInt(px), 0, tex.width  - 1);
-        int x1 = Mathf.Clamp(x0 + 1,               0, tex.width  - 1);
-        int z0 = Mathf.Clamp(Mathf.FloorToInt(pz), 0, tex.height - 1);
-        int z1 = Mathf.Clamp(z0 + 1,               0, tex.height - 1);
-        float fx = px - x0, fz = pz - z0;
-        Color c00 = tex.GetPixel(x0, z0);
-        Color c10 = tex.GetPixel(x1, z0);
-        Color c01 = tex.GetPixel(x0, z1);
-        Color c11 = tex.GetPixel(x1, z1);
-        return Color.Lerp(Color.Lerp(c00, c10, fx), Color.Lerp(c01, c11, fx), fz);
-    }
-
-    private static float SmoothStep(float lo, float hi, float x)
-    {
-        float t = Mathf.Clamp01((x - lo) / (hi - lo));
-        return t * t * (3f - 2f * t);
-    }
-
-    private Material BuildSharedMaterials_Legacy()
-    {
-        return BuildSharedMaterial();
+            $"cellXZ: ({cellX}, {cellZ})\n" +
+            $"surfaceHeight(local): {profile.surfaceHeight:F2}  depth: {depth:F2}  bj: {bj:F3}\n" +
+            $"isBeach: {profile.isBeachLand}  isOcean: {profile.isOceanFloor}  slope: {profile.slopeFactor:F3}\n" +
+            $"lakeSurfaceY: {profile.lakeSurfaceY:F3}  lakeWaterDepth: {lakeWaterDepth:F3}\n" +
+            $"oceanWaterDepth: {profile.oceanWaterDepth:F3}  effectiveWater: {effectiveWaterDepth:F3}\n" +
+            $"Profile shows: {dominantLayer}\n" +
+            $"Soil boundaries (depth m, +bj): org={profile.organicThickness + bj:F2} top={profile.topsoilBoundary + bj:F2} elu={profile.eluviationBoundary + bj:F2} sub={profile.subsoilBoundary + bj:F2}\n" +
+            $"  par={profile.parentBoundary + bj:F2} wth={profile.weatheredBoundary + bj:F2} bSand={profile.beachSandBoundary + bj:F2} bGrav={profile.beachGravelBoundary + bj:F2}";
     }
 
     private static List<VoxelTerrainMaterialDefinition> BuildDefaultMaterialDefinitions()
@@ -792,134 +686,4 @@ public partial class ProceduralVoxelTerrain
         };
     }
 
-    // Toggle the cell material debug overlay. When enabled the shader shows the raw
-    // colorTint of the CPU-assigned cellMaterialIndices value at each XZ column instead
-    // of the normal profile-texture-computed colour. Call again with false to restore normal shading.
-    // RETIRED: debug overlay relied on the old profile-texture shader.
-    [System.Obsolete("Cell material debug overlay is retired with the profile-texture shader pipeline.")]
-    public void SetCellMaterialDebugMode(bool enabled)
-    {
-        // Debug cell-material overlay relied on the old profile-texture shader.
-        // It is a no-op with the vertex-color VoxelTerrainLit shader.
-    }
-
-    // Pending CPU-side storage for debug texture pixels when generated off the main thread.
-    [NonSerialized] private Color[] cellMaterialDebugPendingPixels;
-    [NonSerialized] private bool cellMaterialDebugPending = false;
-
-    private void BuildAndUploadCellMaterialDebugTexture()
-    {
-        if (!HasReadySurfaceHeightPrepass || cellMaterialIndices == null)
-            return;
-
-        int w   = TotalSamplesX;
-        int h   = TotalSamplesZ;
-        float vs = voxelSizeMeters;
-
-        Color[] pixels = new Color[w * h];
-        int maxCellX = TotalCellsX - 1;
-        int maxCellY = TotalCellsY - 1;
-        int maxCellZ = TotalCellsZ - 1;
-
-        for (int z = 0; z < h; z++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                int   sampleIdx = z * w + x;
-                float surfaceH  = surfaceHeightPrepass[sampleIdx];
-                int   cellX     = Mathf.Clamp(x, 0, maxCellX);
-                int   cellZ     = Mathf.Clamp(z, 0, maxCellZ);
-                // Target the solid cell just below the iso-surface.
-                int   cellY     = Mathf.Clamp(Mathf.FloorToInt((surfaceH - vs * 0.1f) / vs), 0, maxCellY);
-                int   cellIdx   = VoxelDataStore.GetCellIndex(cellX, cellY, cellZ, TotalCellsX, TotalCellsY);
-                byte  matIdx    = cellMaterialIndices[cellIdx];
-                Color c = (matIdx < materialDefinitions.Count && materialDefinitions[matIdx] != null)
-                    ? materialDefinitions[matIdx].colorTint
-                    : Color.magenta;
-                pixels[sampleIdx] = c;
-            }
-        }
-
-        // If we're on the main thread, create the Texture2D and upload immediately.
-        // If we're running on a background thread (the mesh builder), defer creation of
-        // the Texture2D until the main thread. Physics and many Graphics APIs are only
-        // valid on the main thread; avoid calling Texture2D constructor off-thread.
-        if (System.Threading.Thread.CurrentThread.ManagedThreadId == ProceduralVoxelTerrain.MainThreadId)
-        {
-            if (cellMaterialDebugTex == null || cellMaterialDebugTex.width != w || cellMaterialDebugTex.height != h)
-            {
-                cellMaterialDebugTex = new Texture2D(w, h, TextureFormat.RGBA32, false, true)
-                {
-                    name        = "CellMaterialDebug",
-                    filterMode  = FilterMode.Point,
-                    wrapMode    = TextureWrapMode.Clamp
-                };
-            }
-
-            cellMaterialDebugTex.SetPixels(pixels);
-            cellMaterialDebugTex.Apply(false, false);
-            sharedTerrainMaterial.SetTexture(PropCellMaterialDebugTex, cellMaterialDebugTex);
-
-            // Also set terrain origin and world size so the shader can map worldPos -> cell UV.
-            Vector3 origin = transform.position;
-            float worldSizeX = (TotalSamplesX - 1) * voxelSizeMeters;
-            float worldSizeZ = (TotalSamplesZ - 1) * voxelSizeMeters;
-            sharedTerrainMaterial.SetFloat(PropTerrainOriginX, origin.x);
-            sharedTerrainMaterial.SetFloat(PropTerrainOriginZ, origin.z);
-            sharedTerrainMaterial.SetFloat(PropTerrainWorldSizeX, worldSizeX);
-            sharedTerrainMaterial.SetFloat(PropTerrainWorldSizeZ, worldSizeZ);
-            sharedTerrainMaterial.SetFloat(Shader.PropertyToID("_VoxelSize"), voxelSizeMeters);
-            sharedTerrainMaterial.SetFloat(Shader.PropertyToID("_TotalSamplesX"), TotalSamplesX);
-            sharedTerrainMaterial.SetFloat(Shader.PropertyToID("_TotalSamplesZ"), TotalSamplesZ);
-
-            // Turn on debug sampling; shader will sample _CellMaterialDebugTex when this is non-zero.
-            sharedTerrainMaterial.SetFloat(PropDebugCellMaterial, 1f);
-        }
-        else
-        {
-            // Defer texture creation to the main thread: store pixels and set pending flag.
-            cellMaterialDebugPendingPixels = pixels;
-            cellMaterialDebugPending = true;
-        }
-    }
-
-    // Call from main thread (e.g., CommitChunkMesh) to apply any pending debug texture.
-    internal void ApplyPendingCellMaterialDebugTextureIfNeeded()
-    {
-        if (!cellMaterialDebugPending || cellMaterialDebugPendingPixels == null)
-            return;
-
-        int w = TotalSamplesX;
-        int h = TotalSamplesZ;
-
-        if (cellMaterialDebugTex == null || cellMaterialDebugTex.width != w || cellMaterialDebugTex.height != h)
-        {
-            cellMaterialDebugTex = new Texture2D(w, h, TextureFormat.RGBA32, false, true)
-            {
-                name        = "CellMaterialDebug",
-                filterMode  = FilterMode.Point,
-                wrapMode    = TextureWrapMode.Clamp
-            };
-        }
-
-        cellMaterialDebugTex.SetPixels(cellMaterialDebugPendingPixels);
-        cellMaterialDebugTex.Apply(false, false);
-        sharedTerrainMaterial.SetTexture(PropCellMaterialDebugTex, cellMaterialDebugTex);
-
-        Vector3 origin = transform.position;
-        float worldSizeX = (TotalSamplesX - 1) * voxelSizeMeters;
-        float worldSizeZ = (TotalSamplesZ - 1) * voxelSizeMeters;
-        sharedTerrainMaterial.SetFloat(PropTerrainOriginX, origin.x);
-        sharedTerrainMaterial.SetFloat(PropTerrainOriginZ, origin.z);
-        sharedTerrainMaterial.SetFloat(PropTerrainWorldSizeX, worldSizeX);
-        sharedTerrainMaterial.SetFloat(PropTerrainWorldSizeZ, worldSizeZ);
-        sharedTerrainMaterial.SetFloat(Shader.PropertyToID("_VoxelSize"), voxelSizeMeters);
-        sharedTerrainMaterial.SetFloat(Shader.PropertyToID("_TotalSamplesX"), TotalSamplesX);
-        sharedTerrainMaterial.SetFloat(Shader.PropertyToID("_TotalSamplesZ"), TotalSamplesZ);
-        sharedTerrainMaterial.SetFloat(PropDebugCellMaterial, 1f);
-
-        // Clear pending state
-        cellMaterialDebugPendingPixels = null;
-        cellMaterialDebugPending = false;
-    }
 }
