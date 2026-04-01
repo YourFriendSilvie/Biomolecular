@@ -313,7 +313,13 @@ public partial class ProceduralVoxelTerrain
         float lakeWaterDepth = (profile.lakeSurfaceY > 0.001f) ? Mathf.Max(0f, profile.lakeSurfaceY - localY) : 0f;
         float effectiveWaterDepth = Mathf.Max(profile.oceanWaterDepth, lakeWaterDepth);
 
-        // Dominant layer — mirrors the logic in DetermineCellMaterialIndex.
+        // Per-column boundary noise offset — same pre-baked value used by DetermineCellMaterialIndex.
+        float bj = profile.materialBoundaryNoise;
+
+        // Dominant layer — matches the decision tree in DetermineCellMaterialIndex,
+        // including boundary noise offset (bj) and slope/cliff overrides.
+        // Note: ore-vein detection requires 3D noise that is not pre-baked, so veins
+        // are not reported here; use the "Actual cellMaterial" line below for those.
         string dominantLayer;
         if (profile.isOceanFloor)
         {
@@ -323,27 +329,43 @@ public partial class ProceduralVoxelTerrain
             else if (owd < BasinMudDepth)    dominantLayer = "Lake Mud";
             else                             dominantLayer = "Clay Deposit";
         }
-        else if (profile.isBeachLand && depth <= profile.beachSandBoundary)    dominantLayer = "Beach Sand";
-        else if (profile.isBeachLand && depth <= profile.beachGravelBoundary)   dominantLayer = "Beach Gravel";
-        else if (depth <= profile.organicThickness)   dominantLayer = "Organic Layer";
-        else if (depth <= profile.topsoilBoundary)    dominantLayer = "Topsoil";
-        else if (depth <= profile.eluviationBoundary) dominantLayer = "Eluviation";
-        else if (depth <= profile.subsoilBoundary)    dominantLayer = "Subsoil";
-        else if (depth <= profile.parentBoundary)     dominantLayer = "Parent Material";
-        else if (depth <= profile.weatheredBoundary)  dominantLayer = "Weathered Stone";
-        else                                          dominantLayer = "Bedrock";
+        else if (profile.isBeachLand && depth <= profile.beachSandBoundary + bj)   dominantLayer = "Beach Sand";
+        else if (profile.isBeachLand && depth <= profile.beachGravelBoundary + bj)  dominantLayer = "Beach Gravel";
+        else
+        {
+            float slopeF = profile.slopeFactor;
+            bool isVeryCliff     = slopeF >= 0.75f;
+            bool isModerateCliff = slopeF >= 0.5f && slopeF < 0.75f;
+
+            if (isVeryCliff && depth <= profile.weatheredBoundary + bj)
+            {
+                dominantLayer = "Weathered Stone";
+            }
+            else if (isModerateCliff &&
+                     (depth <= profile.organicThickness + bj || depth <= profile.topsoilBoundary + bj))
+            {
+                dominantLayer = "Weathered Stone";
+            }
+            else if (depth <= profile.organicThickness + bj)    dominantLayer = "Organic Layer";
+            else if (depth <= profile.topsoilBoundary + bj)     dominantLayer = "Topsoil";
+            else if (depth <= profile.eluviationBoundary + bj)  dominantLayer = "Eluviation";
+            else if (depth <= profile.subsoilBoundary + bj)     dominantLayer = "Subsoil";
+            else if (depth <= profile.parentBoundary + bj)      dominantLayer = "Parent Material";
+            else if (depth <= profile.weatheredBoundary + bj)   dominantLayer = "Weathered Stone";
+            else                                                 dominantLayer = "Bedrock";
+        }
 
         return
             $"--- Terrain Profile Debug ---\n" +
             $"worldPos: ({worldPoint.x:F1}, {worldPoint.y:F1}, {worldPoint.z:F1})\n" +
             $"cellXZ: ({cellX}, {cellZ})\n" +
-            $"surfaceHeight(local): {profile.surfaceHeight:F2}  depth: {depth:F2}\n" +
+            $"surfaceHeight(local): {profile.surfaceHeight:F2}  depth: {depth:F2}  bj: {bj:F3}\n" +
             $"isBeach: {profile.isBeachLand}  isOcean: {profile.isOceanFloor}  slope: {profile.slopeFactor:F3}\n" +
             $"lakeSurfaceY: {profile.lakeSurfaceY:F3}  lakeWaterDepth: {lakeWaterDepth:F3}\n" +
             $"oceanWaterDepth: {profile.oceanWaterDepth:F3}  effectiveWater: {effectiveWaterDepth:F3}\n" +
             $"Profile shows: {dominantLayer}\n" +
-            $"Soil boundaries (depth m): org={profile.organicThickness:F2} top={profile.topsoilBoundary:F2} elu={profile.eluviationBoundary:F2} sub={profile.subsoilBoundary:F2}\n" +
-            $"  par={profile.parentBoundary:F2} wth={profile.weatheredBoundary:F2} bSand={profile.beachSandBoundary:F2} bGrav={profile.beachGravelBoundary:F2}";
+            $"Soil boundaries (depth m, +bj): org={profile.organicThickness + bj:F2} top={profile.topsoilBoundary + bj:F2} elu={profile.eluviationBoundary + bj:F2} sub={profile.subsoilBoundary + bj:F2}\n" +
+            $"  par={profile.parentBoundary + bj:F2} wth={profile.weatheredBoundary + bj:F2} bSand={profile.beachSandBoundary + bj:F2} bGrav={profile.beachGravelBoundary + bj:F2}";
     }
 
     private static List<VoxelTerrainMaterialDefinition> BuildDefaultMaterialDefinitions()
