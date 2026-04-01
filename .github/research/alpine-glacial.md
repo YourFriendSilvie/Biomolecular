@@ -95,7 +95,3 @@ Notes on sources and recommended next steps
 
 - The NPS site is the primary synthesized public resource for park-scale ecology and geology; peer-reviewed geomorphic and hydrologic literature should be consulted when precise numeric process rates or sediment budgets are required for scientific fidelity.
 - Recommended follow-up if higher-fidelity parameters are needed: USGS professional papers on Olympic glaciation and geomorphology, NOAA/PRISM or regional climate normals for site-specific precipitation and temperature seasonality, and local soil survey (USDA NRCS) maps for precise pedology.
-
-File saved to:
-C:\Users\Silver\.copilot\session-state\27dcef79-0701-42a6-9528-7be263dc6d7\research\olympic-peninsula-s-alpine-and-glacial-zones-geolo.md
-

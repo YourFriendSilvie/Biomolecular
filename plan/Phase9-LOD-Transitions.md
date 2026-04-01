@@ -20,7 +20,7 @@
 - Add unit tests for mask generation.
 
 **Files:**
-- Assets/Scripts/World/VoxelTerrain/Core/TerrainGenerationOperation.cs
+- Assets/Scripts/World/VoxelTerrain/Generation/TerrainGenerationOperation.cs
 - Assets/Tests/TransitionMaskTests.cs
 
 ---

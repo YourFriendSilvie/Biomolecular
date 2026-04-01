@@ -19,7 +19,7 @@
 - Add unit tests in `BiomeMapperTests`.
 
 **Files:**
-- Assets/Scripts/World/VoxelTerrain/TerrainGenerationOperation.cs
+- Assets/Scripts/World/VoxelTerrain/Generation/TerrainGenerationOperation.cs
 - Assets/Scripts/World/VoxelTerrain/Biomes/BiomeMapper.cs
 - Assets/Tests/BiomeMapperTests.cs
 
@@ -80,7 +80,7 @@
 - Add unit tests for slope overrides.
 
 **Files:**
-- Assets/Scripts/World/VoxelTerrain/TerrainGenerationOperation.cs
+- Assets/Scripts/World/VoxelTerrain/Generation/TerrainGenerationOperation.cs
 - Assets/Tests/SlopeOverrideTests.cs
 
 ---
@@ -99,8 +99,8 @@
 - Add visual test scenes for material blending.
 
 **Files:**
-- Assets/Scripts/World/VoxelTerrain/Meshing/BurstMesher.cs
-- Assets/Shaders/VoxelTerrainLit.shader
+- Assets/Scripts/World/VoxelTerrain/Meshing/ChunkMeshBuilder.cs
+- Assets/Shader/VoxelTerrainLit.shader
 - Assets/Tests/MaterialBlendVisualTests.cs
 
 ---
